@@ -1,6 +1,11 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/xnU44QZi)
-# Exam #1234: "Exam Title"
-## Student: s123456 LASTNAME FIRSTNAME 
+<!-- [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/xnU44QZi) -->
+# Exam #2: "Restaurant"
+
+![polito_logo](resources/logo_polito.jpg)
+
+## Student: s345388 INNOCENTI ELIA 
+
+Text
 
 ## React Client Application Routes
 
@@ -37,7 +42,7 @@
 
 ## Screenshot
 
-![Screenshot](./img/screenshot.png)
+![Screenshot](./resources/screenshot.png)
 
 ## Users Credentials
 
