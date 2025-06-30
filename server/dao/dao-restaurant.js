@@ -1,9 +1,6 @@
-/**
- * Data Access Object (DAO) for restaurant-related database operations
- * Handles dishes, ingredients, constraints, orders, and availability management
- */
-
 'use strict';
+
+/* Data Access Object (DAO) for restaurant-related database operations */
 
 const db = require('../db');
 

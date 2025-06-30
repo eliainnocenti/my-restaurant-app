@@ -77,18 +77,18 @@ FROM ingredient_incompatibilities;
 -- 7. Orders
 -- ----------------------------------------------------------------------------
 
--- Andrea: two orders
+-- Andrea: two orders (the second one is for backup)
 INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
     -- Andrea’s small pizza
     (1,
      (SELECT id FROM base_dishes WHERE name='pizza'),
      (SELECT id FROM sizes       WHERE label='Small'),
-     'confirmed', TRUE),
-    -- Andrea’s small salad
-    (1,
-     (SELECT id FROM base_dishes WHERE name='salad'),
-     (SELECT id FROM sizes       WHERE label='Small'),
      'confirmed', TRUE);
+--    -- Andrea’s small salad
+--    (1,
+--     (SELECT id FROM base_dishes WHERE name='salad'),
+--     (SELECT id FROM sizes       WHERE label='Small'),
+--     'confirmed', TRUE);
 
 -- Ingredients for Andrea’s small pizza
 INSERT INTO order_ingredients (order_id, ingredient_id)
@@ -99,27 +99,27 @@ WHERE o.user_id=1
   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
--- Ingredients for Andrea’s small salad
-INSERT INTO order_ingredients (order_id, ingredient_id)
-SELECT o.id, ing.id
-FROM orders o
-JOIN ingredients ing ON ing.name IN ('eggs','carrots')
-WHERE o.user_id=1
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='salad')
-  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
+-- -- Ingredients for Andrea’s small salad
+-- INSERT INTO order_ingredients (order_id, ingredient_id)
+-- SELECT o.id, ing.id
+-- FROM orders o
+-- JOIN ingredients ing ON ing.name IN ('eggs','carrots')
+-- WHERE o.user_id=1
+--   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='salad')
+--   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
--- Elia: two orders
+-- Elia: two orders (the second one is for backup)
 INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
     -- Elia’s medium pasta
     (2,
      (SELECT id FROM base_dishes WHERE name='pasta'),
      (SELECT id FROM sizes       WHERE label='Medium'),
-     'confirmed', FALSE),
-    -- Elia’s large pizza
-    (2,
-     (SELECT id FROM base_dishes WHERE name='pizza'),
-     (SELECT id FROM sizes       WHERE label='Large'),
      'confirmed', FALSE);
+--    -- Elia’s large pizza
+--    (2,
+--     (SELECT id FROM base_dishes WHERE name='pizza'),
+--     (SELECT id FROM sizes       WHERE label='Large'),
+--     'confirmed', FALSE);
 
 -- Ingredients for Elia’s medium pasta
 INSERT INTO order_ingredients (order_id, ingredient_id)
@@ -130,45 +130,45 @@ WHERE o.user_id=2
   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Medium');
 
--- Ingredients for Elia’s large pizza
-INSERT INTO order_ingredients (order_id, ingredient_id)
-SELECT o.id, ing.id
-FROM orders o
-JOIN ingredients ing ON ing.name IN ('ham','eggs','olives','potatoes')
-WHERE o.user_id=2
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
-  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
+-- -- Ingredients for Elia’s large pizza
+-- INSERT INTO order_ingredients (order_id, ingredient_id)
+-- SELECT o.id, ing.id
+-- FROM orders o
+-- JOIN ingredients ing ON ing.name IN ('ham','eggs','olives','potatoes')
+-- WHERE o.user_id=2
+--   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
+--   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
 
--- Renato: two orders
+-- Renato: two orders (the second one is for backup)
 INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
-    -- Renato’s small salad
+    -- Renato’s large salad
     (3,
      (SELECT id FROM base_dishes WHERE name='salad'),
-     (SELECT id FROM sizes       WHERE label='Small'),
-     'confirmed', TRUE),
-    -- Renato’s small pasta
-    (3,
-     (SELECT id FROM base_dishes WHERE name='pasta'),
-     (SELECT id FROM sizes       WHERE label='Small'),
+     (SELECT id FROM sizes       WHERE label='Large'),
      'confirmed', TRUE);
+--    -- Renato’s small pasta
+--    (3,
+--     (SELECT id FROM base_dishes WHERE name='pasta'),
+--     (SELECT id FROM sizes       WHERE label='Small'),
+--     'confirmed', TRUE);
 
--- Ingredients for Renato’s small salad
+-- Ingredients for Renato’s large salad
 INSERT INTO order_ingredients (order_id, ingredient_id)
 SELECT o.id, ing.id
 FROM orders o
 JOIN ingredients ing ON ing.name IN ('potatoes','anchovies')
 WHERE o.user_id=3
   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='salad')
-  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
+  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
 
--- Ingredients for Renato’s small pasta
-INSERT INTO order_ingredients (order_id, ingredient_id)
-SELECT o.id, ing.id
-FROM orders o
-JOIN ingredients ing ON ing.name = 'mushrooms'
-WHERE o.user_id=3
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
-  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
+-- -- Ingredients for Renato’s small pasta
+-- INSERT INTO order_ingredients (order_id, ingredient_id)
+-- SELECT o.id, ing.id
+-- FROM orders o
+-- JOIN ingredients ing ON ing.name = 'mushrooms'
+-- WHERE o.user_id=3
+--   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
+--   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
 -- Simone: two orders
 INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
@@ -176,12 +176,12 @@ INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
     (4,
      (SELECT id FROM base_dishes WHERE name='pizza'),
      (SELECT id FROM sizes       WHERE label='Medium'),
-     'confirmed', TRUE),
-    -- Simone’s large pasta
-    (4,
-     (SELECT id FROM base_dishes WHERE name='pasta'),
-     (SELECT id FROM sizes       WHERE label='Large'),
      'confirmed', TRUE);
+--    -- Simone’s large pasta
+--    (4,
+--     (SELECT id FROM base_dishes WHERE name='pasta'),
+--     (SELECT id FROM sizes       WHERE label='Large'),
+--     'confirmed', TRUE);
 
 -- Ingredients for Simone’s medium pizza
 INSERT INTO order_ingredients (order_id, ingredient_id)
@@ -192,13 +192,13 @@ WHERE o.user_id=4
   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Medium');
 
--- Ingredients for Simone’s large pasta
-INSERT INTO order_ingredients (order_id, ingredient_id)
-SELECT o.id, ing.id
-FROM orders o
-JOIN ingredients ing ON ing.name = 'eggs'
-WHERE o.user_id=4
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
-  AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
+-- -- Ingredients for Simone’s large pasta
+-- INSERT INTO order_ingredients (order_id, ingredient_id)
+-- SELECT o.id, ing.id
+-- FROM orders o
+-- JOIN ingredients ing ON ing.name = 'eggs'
+-- WHERE o.user_id=4
+--   AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
+--   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
 
 COMMIT;
