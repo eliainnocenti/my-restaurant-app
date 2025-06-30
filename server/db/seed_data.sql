@@ -8,10 +8,10 @@ BEGIN TRANSACTION;
 -- 1. Users
 -- ----------------------------------------------------------------------------
 INSERT INTO users (id, email, name, hash, salt, secret) VALUES
-    (1, 'u1@restaurant.com', 'Andrea', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
-    (2, 'u2@restaurant.com', 'Elia',   '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', ''),
-    (3, 'u3@restaurant.com', 'Renato', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
-    (4, 'u4@restaurant.com', 'Simone', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI');
+    (1, 'u1@rest.com', 'Andrea', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
+    (2, 'u2@rest.com', 'Elia',   '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', ''),
+    (3, 'u3@rest.com', 'Renato', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
+    (4, 'u4@rest.com', 'Simone', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI');
 
 -- ----------------------------------------------------------------------------
 -- 2. Base Dishes
@@ -78,12 +78,12 @@ FROM ingredient_incompatibilities;
 -- ----------------------------------------------------------------------------
 
 -- Andrea: two orders (the second one is for backup)
-INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
-    -- Andrea’s small pizza
+INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa, created_at) VALUES
+    -- Andrea's small pizza
     (1,
      (SELECT id FROM base_dishes WHERE name='pizza'),
      (SELECT id FROM sizes       WHERE label='Small'),
-     'confirmed', TRUE);
+     'confirmed', TRUE, '2024-01-20 12:30:00');
 --    -- Andrea’s small salad
 --    (1,
 --     (SELECT id FROM base_dishes WHERE name='salad'),
@@ -109,12 +109,12 @@ WHERE o.user_id=1
 --   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
 -- Elia: two orders (the second one is for backup)
-INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
-    -- Elia’s medium pasta
+INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa, created_at) VALUES
+    -- Elia's medium pasta
     (2,
      (SELECT id FROM base_dishes WHERE name='pasta'),
      (SELECT id FROM sizes       WHERE label='Medium'),
-     'confirmed', FALSE);
+     'confirmed', FALSE, '2024-01-21 13:15:00');
 --    -- Elia’s large pizza
 --    (2,
 --     (SELECT id FROM base_dishes WHERE name='pizza'),
@@ -140,12 +140,12 @@ WHERE o.user_id=2
 --   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
 
 -- Renato: two orders (the second one is for backup)
-INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
-    -- Renato’s large salad
+INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa, created_at) VALUES
+    -- Renato's large salad
     (3,
      (SELECT id FROM base_dishes WHERE name='salad'),
      (SELECT id FROM sizes       WHERE label='Large'),
-     'confirmed', TRUE);
+     'confirmed', TRUE, '2024-01-22 19:45:00');
 --    -- Renato’s small pasta
 --    (3,
 --     (SELECT id FROM base_dishes WHERE name='pasta'),
@@ -171,12 +171,12 @@ WHERE o.user_id=3
 --   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
 -- Simone: two orders
-INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES
-    -- Simone’s medium pizza
+INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa, created_at) VALUES
+    -- Simone's medium pizza
     (4,
      (SELECT id FROM base_dishes WHERE name='pizza'),
      (SELECT id FROM sizes       WHERE label='Medium'),
-     'confirmed', TRUE);
+     'confirmed', TRUE, '2024-01-23 20:10:00');
 --    -- Simone’s large pasta
 --    (4,
 --     (SELECT id FROM base_dishes WHERE name='pasta'),
