@@ -1,9 +1,17 @@
 /**
- * Layout components for the Restaurant application
- * Provides different page layouts for browsing, ordering, and user management
+ * Layout Components for Restaurant Application
+ * 
+ * Provides various page layouts and templates including:
+ * - GenericLayout: Main wrapper with navigation and error handling
+ * - BrowseLayout: Public menu browsing interface
+ * - ConfiguratorLayout: Authenticated order creation interface
+ * - OrdersLayout: User order management interface
+ * - LoginLayout & TotpLayout: Authentication interfaces
+ * - NotFoundLayout: 404 error page
+ * 
+ * Each layout handles specific user flows and authentication requirements,
+ * providing consistent UI patterns and responsive design across the application.
  */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
 
 import { Row, Col, Button, Spinner, Alert, Card, Container } from 'react-bootstrap';
 import { Outlet, Link, useNavigate } from 'react-router';
@@ -14,19 +22,25 @@ import { OrdersList } from './OrdersList';
 import { LoginForm, TotpForm } from './Auth';
 
 /**
- * Generic layout with navigation and message handling
+ * Generic layout wrapper with navigation and global message handling
+ * Serves as the main template for most application pages
+ * @param {Object} props - Layout properties including authentication state and handlers
+ * @returns {JSX.Element} Layout with navigation, messages, and content area
  */
 function GenericLayout(props) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
+      {/* Top navigation bar with authentication controls */}
       <Navigation 
         loggedIn={props.loggedIn} 
         user={props.user} 
         loggedInTotp={props.loggedInTotp} 
-        logout={props.logout} 
+        logout={props.logout}
+        upgradeTo2FA={props.upgradeTo2FA}
       />
 
       <Container fluid className="py-4">
+        {/* Global message display for errors and notifications */}
         {props.message && (
           <Row>
             <Col>
@@ -44,6 +58,7 @@ function GenericLayout(props) {
           </Row>
         )}
 
+        {/* Loading spinner or page content */}
         {props.loading ? (
           <Row>
             <Col className="text-center py-5">
@@ -58,6 +73,7 @@ function GenericLayout(props) {
             </Col>
           </Row>
         ) : (
+          // React Router outlet for nested routes
           <Outlet />
         )}
       </Container>
@@ -66,7 +82,11 @@ function GenericLayout(props) {
 }
 
 /**
- * Browse layout - shows dishes and ingredients (public access)
+ * Browse layout for public menu viewing
+ * Displays dishes, sizes, and ingredients without requiring authentication
+ * Includes call-to-action buttons for logged-in users
+ * @param {Object} props - Menu data and authentication status
+ * @returns {JSX.Element} Public menu browsing interface
  */
 function BrowseLayout(props) {
   const { dishes, baseDishes, sizes, ingredients, loggedIn } = props;
@@ -74,6 +94,7 @@ function BrowseLayout(props) {
 
   return (
     <Container>
+      {/* Page header with title and action buttons */}
       <Row className="mb-5">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
@@ -84,6 +105,7 @@ function BrowseLayout(props) {
               </h1>
               <p className="text-muted fs-5">Discover our delicious dishes and fresh ingredients</p>
             </div>
+            {/* Action buttons for authenticated users */}
             {loggedIn && (
               <div>
                 <Link to="/orders" className="me-3">
@@ -120,6 +142,7 @@ function BrowseLayout(props) {
       </Row>
 
       <Row>
+        {/* Base Dishes Column */}
         <Col lg={3} className="mb-4">
           <Card className="h-100 shadow-lg border-0 rounded-4">
             <Card.Header 
@@ -132,6 +155,7 @@ function BrowseLayout(props) {
               </h3>
             </Card.Header>
             <Card.Body className="p-4">
+              {/* Display each base dish type */}
               {baseDishes.map(baseDish => (
                 <Card key={baseDish.id} className="mb-3 border-2 rounded-3 shadow-sm">
                   <Card.Body className="p-4 text-center">
@@ -149,6 +173,7 @@ function BrowseLayout(props) {
           </Card>
         </Col>
 
+        {/* Sizes Column */}
         <Col lg={3} className="mb-4">
           <Card className="h-100 shadow-lg border-0 rounded-4">
             <Card.Header 
@@ -161,6 +186,7 @@ function BrowseLayout(props) {
               </h3>
             </Card.Header>
             <Card.Body className="p-4">
+              {/* Display size options with pricing and capacity */}
               {sizes.map(size => (
                 <Card key={size.id} className="mb-3 border-2 rounded-3 shadow-sm">
                   <Card.Body className="p-4">
@@ -190,6 +216,7 @@ function BrowseLayout(props) {
           </Card>
         </Col>
 
+        {/* Ingredients Column */}
         <Col lg={6} className="mb-4">
           <Card className="h-100 shadow-lg border-0 rounded-4">
             <Card.Header 
@@ -202,6 +229,7 @@ function BrowseLayout(props) {
               </h3>
             </Card.Header>
             <Card.Body className="p-4" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              {/* Display ingredients with constraints and availability */}
               {ingredients.map(ingredient => (
                 <Card key={ingredient.id} className="mb-3 border-2 rounded-3 shadow-sm">
                   <Card.Body className="p-4">
@@ -218,6 +246,7 @@ function BrowseLayout(props) {
                         </div>
                       </div>
                       <div className="text-end">
+                        {/* Availability indicator */}
                         {ingredient.availability !== null && (
                           <div 
                             className="badge px-3 py-2 mb-2 rounded-pill"
@@ -232,6 +261,7 @@ function BrowseLayout(props) {
                             {ingredient.availability}
                           </div>
                         )}
+                        {/* Requirements indicator */}
                         {ingredient.requires.length > 0 && (
                           <div className="mb-2">
                             <small 
@@ -246,6 +276,7 @@ function BrowseLayout(props) {
                             </small>
                           </div>
                         )}
+                        {/* Incompatibilities indicator */}
                         {ingredient.incompatible.length > 0 && (
                           <div>
                             <small 
@@ -270,6 +301,7 @@ function BrowseLayout(props) {
         </Col>
       </Row>
 
+      {/* Call-to-action for non-authenticated users */}
       {!loggedIn && (
         <Row className="mt-5">
           <Col className="text-center">
@@ -311,11 +343,15 @@ function BrowseLayout(props) {
 }
 
 /**
- * Order configurator layout
+ * Order configurator layout for authenticated users
+ * Wraps the RestaurantConfigurator component with header and navigation
+ * @param {Object} props - Menu data and order creation handlers
+ * @returns {JSX.Element} Order configuration interface
  */
 function ConfiguratorLayout(props) {
   return (
     <Container>
+      {/* Page header with navigation */}
       <Row className="mb-4">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
@@ -340,6 +376,7 @@ function ConfiguratorLayout(props) {
         </Col>
       </Row>
 
+      {/* Order configurator component */}
       <RestaurantConfigurator 
         dishes={props.dishes}
         baseDishes={props.baseDishes}
@@ -353,11 +390,15 @@ function ConfiguratorLayout(props) {
 }
 
 /**
- * Orders list layout
+ * Orders list layout for viewing and managing user orders
+ * Includes header with navigation and order management actions
+ * @param {Object} props - Orders data and management functions
+ * @returns {JSX.Element} Order management interface
  */
 function OrdersLayout(props) {
   return (
     <Container>
+      {/* Page header with navigation and actions */}
       <Row className="mb-4">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
@@ -369,6 +410,7 @@ function OrdersLayout(props) {
               <p className="text-muted fs-5">Track and manage your restaurant orders</p>
             </div>
             <div>
+              {/* New order button */}
               <Link to="/configure" className="me-3">
                 <Button 
                   size="lg"
@@ -382,6 +424,7 @@ function OrdersLayout(props) {
                   New Order
                 </Button>
               </Link>
+              {/* Back to menu button */}
               <Link to="/">
                 <Button 
                   variant="outline-secondary" 
@@ -397,33 +440,44 @@ function OrdersLayout(props) {
         </Col>
       </Row>
 
+      {/* Orders list component */}
       <OrdersList 
         orders={props.orders}
         dishes={props.dishes}
         ingredients={props.ingredients}
         cancelOrder={props.cancelOrder}
         canCancel={props.canCancel}
+        upgradeTo2FA={props.upgradeTo2FA}
+        user={props.user}
       />
     </Container>
   );
 }
 
 /**
- * Login layout
+ * Login layout wrapper
+ * Simple wrapper for the LoginForm component
+ * @param {Object} props - Login handler function and user object
+ * @returns {JSX.Element} Login form interface
  */
 function LoginLayout(props) {
-  return <LoginForm login={props.login} />;
+  return <LoginForm login={props.login} user={props.user} />;
 }
 
 /**
- * TOTP layout for 2FA
+ * TOTP layout wrapper for two-factor authentication
+ * Simple wrapper for the TotpForm component
+ * @param {Object} props - TOTP success and skip handlers
+ * @returns {JSX.Element} TOTP verification interface
  */
 function TotpLayout(props) {
-  return <TotpForm totpSuccessful={props.totpSuccessful} />;
+  return <TotpForm totpSuccessful={props.totpSuccessful} skipTotpSuccessful={props.skipTotpSuccessful} />;
 }
 
 /**
  * 404 Not Found layout
+ * Displays error message and navigation back to main page
+ * @returns {JSX.Element} 404 error page
  */
 function NotFoundLayout() {
   return (
@@ -435,6 +489,7 @@ function NotFoundLayout() {
             style={{ background: 'rgba(255, 255, 255, 0.9)' }}
           >
             <Card.Body className="p-5">
+              {/* 404 error icon */}
               <i 
                 className="bi bi-exclamation-triangle" 
                 style={{ fontSize: '4rem', color: '#e74c3c' }}
@@ -445,6 +500,7 @@ function NotFoundLayout() {
               <p className="text-muted mb-4">
                 Oops! The page you're looking for doesn't exist.
               </p>
+              {/* Back to home button */}
               <Link to="/">
                 <Button 
                   size="lg"

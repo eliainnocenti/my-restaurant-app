@@ -1,10 +1,17 @@
 /**
- * API client for the Restaurant application
- * Handles all HTTP communication with the backend server
- * Provides a consistent interface for authentication and data operations
+ * API Client for Restaurant Application
+ * 
+ * Provides centralized HTTP communication layer between frontend and backend.
+ * Implements:
+ * - RESTful API calls for all restaurant operations
+ * - Authentication and session management
+ * - TOTP two-factor authentication
+ * - Consistent error handling across all requests
+ * - Automatic credential inclusion for session management
+ * 
+ * All requests include credentials for session cookie handling.
+ * Responses are consistently parsed and errors are normalized.
  */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
 
 import dayjs from 'dayjs';
 
@@ -12,7 +19,8 @@ const SERVER_URL = 'http://localhost:3001/api/';
 
 /**
  * Utility function for parsing HTTP responses from the server
- * Handles both successful responses and error cases
+ * Handles both successful responses and error cases consistently
+ * Provides unified error format for the application
  * @param {Promise} httpResponsePromise - Fetch promise to process
  * @returns {Promise} Parsed JSON response or error object
  */
@@ -28,7 +36,7 @@ function getJson(httpResponsePromise) {
         } else {
           // Error case - try to parse error message from response
           response.json()
-            .then(obj => reject(obj))
+            .then(obj => reject(obj)) // Server provided error details
             .catch(err => reject({ error: 'Cannot parse server response' }));
         }
       })
@@ -40,6 +48,7 @@ function getJson(httpResponsePromise) {
 
 /**
  * Authenticate user with username and password
+ * Initiates session and returns user info including 2FA requirements
  * @param {Object} credentials - Object containing username and password
  * @returns {Promise<Object>} User object with authentication info
  */
@@ -55,7 +64,8 @@ const logIn = async credentials =>
 
 /**
  * Get current user information from session
- * @returns {Promise<Object>} Current user object
+ * Verifies session validity and returns user authentication status
+ * @returns {Promise<Object>} Current user object with 2FA status
  */
 const getUserInfo = async () =>
   getJson(
@@ -64,6 +74,7 @@ const getUserInfo = async () =>
 
 /**
  * Log out current user and destroy session
+ * Clears server-side session and invalidates cookies
  * @returns {Promise<Object>} Logout confirmation
  */
 const logOut = async () =>
@@ -76,6 +87,8 @@ const logOut = async () =>
 
 /**
  * Verify TOTP code for two-factor authentication
+ * Validates 6-digit time-based code from authenticator app
+ * Upgrades session to full authentication on success
  * @param {string} totpCode - 6-digit TOTP code from authenticator app
  * @returns {Promise<Object>} TOTP verification result
  */
@@ -89,17 +102,36 @@ const totpVerify = async totpCode =>
     })
   );
 
+/**
+ * Skip TOTP verification for partial authentication
+ * Allows user to proceed with limited privileges
+ * Session marked as partial authentication (no sensitive operations)
+ * @returns {Promise<Object>} Skip confirmation with limitations
+ */
+const skipTotp = async () =>
+  getJson(
+    fetch(SERVER_URL + 'skip-totp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include'
+    })
+  );
+
 // --- Restaurant data API calls ---
 
 /**
  * Get all available dishes (combinations of base dishes and sizes)
- * @returns {Promise<Array>} Array of dish objects
+ * Returns all possible dish-size combinations with pricing
+ * Public endpoint - no authentication required
+ * @returns {Promise<Array>} Array of dish objects with combined IDs
  */
 const getDishes = async () =>
   getJson(fetch(SERVER_URL + 'dishes', { credentials: 'include' }));
 
 /**
  * Get all base dish types (pizza, pasta, salad, etc.)
+ * Returns fundamental dish categories for menu organization
+ * Public endpoint - no authentication required
  * @returns {Promise<Array>} Array of base dish objects
  */
 const getBaseDishes = async () =>
@@ -107,13 +139,17 @@ const getBaseDishes = async () =>
 
 /**
  * Get all available sizes with pricing information
- * @returns {Promise<Array>} Array of size objects
+ * Returns size options with base prices and ingredient limits
+ * Public endpoint - no authentication required
+ * @returns {Promise<Array>} Array of size objects with constraints
  */
 const getSizes = async () =>
   getJson(fetch(SERVER_URL + 'sizes', { credentials: 'include' }));
 
 /**
  * Get all ingredients with constraints and availability
+ * Returns ingredients with requirements, incompatibilities, and stock levels
+ * Public endpoint - no authentication required
  * @returns {Promise<Array>} Array of ingredient objects with relationships
  */
 const getIngredients = async () =>
@@ -123,16 +159,20 @@ const getIngredients = async () =>
 
 /**
  * Get current user's orders
- * @returns {Promise<Array>} Array of order objects with full details
+ * Returns all orders for authenticated user with full details and history
+ * Requires authentication - protected endpoint
+ * @returns {Promise<Array>} Array of order objects with ingredients and pricing
  */
 const getUserOrders = async () =>
   getJson(fetch(SERVER_URL + 'orders', { credentials: 'include' }));
 
 /**
  * Create a new order with selected dish and ingredients
+ * Validates selections and creates order with automatic availability tracking
+ * Requires authentication - protected endpoint
  * @param {string} dishId - Combined dish ID (baseDishId_sizeId)
  * @param {Array<number>} ingredientIds - Array of selected ingredient IDs
- * @returns {Promise<Object>} Created order object
+ * @returns {Promise<Object>} Created order object with confirmation details
  */
 const createOrder = async (dishId, ingredientIds) =>
   getJson(
@@ -146,6 +186,8 @@ const createOrder = async (dishId, ingredientIds) =>
 
 /**
  * Cancel an existing order
+ * Requires TOTP authentication for security
+ * Restores ingredient availability when order is cancelled
  * @param {number} orderId - ID of the order to cancel
  * @returns {Promise<Object>} Cancellation confirmation
  */
@@ -160,21 +202,23 @@ const cancelOrder = async orderId =>
 /**
  * Exported API object containing all available methods
  * Provides a single import point for all API functionality
+ * Organized by functional categories for easy maintenance
  */
 const API = {
-  // Authentication
+  // Authentication methods
   logIn,
   getUserInfo,
   logOut,
   totpVerify,
+  skipTotp,
   
-  // Restaurant data
+  // Restaurant data methods
   getDishes,
   getBaseDishes,
   getSizes,
   getIngredients,
   
-  // Order management
+  // Order management methods
   getUserOrders,
   createOrder,
   cancelOrder

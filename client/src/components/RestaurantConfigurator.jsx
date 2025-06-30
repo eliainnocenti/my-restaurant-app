@@ -1,26 +1,50 @@
 /**
  * Restaurant Order Configurator Component
- * Allows users to select dishes, ingredients and create orders
+ * 
+ * Complex interactive component allowing users to:
+ * - Select base dish types and sizes
+ * - Choose ingredients with constraint validation
+ * - Handle ingredient requirements and incompatibilities
+ * - Calculate real-time pricing
+ * - Submit orders with validation
+ * 
+ * Implements sophisticated constraint checking including:
+ * - Recursive ingredient requirement resolution
+ * - Incompatibility conflict detection
+ * - Availability tracking and validation
+ * - Size-based ingredient capacity limits
  */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
 
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Alert, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
+/**
+ * Main configurator component for creating restaurant orders
+ * @param {Object} props - Component properties
+ * @param {Array} props.baseDishes - Available base dish types
+ * @param {Array} props.sizes - Available sizes with pricing and limits
+ * @param {Array} props.ingredients - Available ingredients with constraints
+ * @param {Function} props.createOrder - Function to create order
+ * @param {Function} props.handleErrors - Global error handler
+ * @returns {JSX.Element} Order configuration interface
+ */
 const RestaurantConfigurator = (props) => {
   const { baseDishes, sizes, ingredients, createOrder, handleErrors } = props;
 
-  // Order configuration state
-  const [selectedBaseDish, setSelectedBaseDish] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [selectedIngredients, setSelectedIngredients] = useState([]);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [totalPrice, setTotalPrice] = useState(0);
+  // Order configuration state management
+  const [selectedBaseDish, setSelectedBaseDish] = useState(null);     // Currently selected dish type
+  const [selectedSize, setSelectedSize] = useState(null);             // Currently selected size
+  const [selectedIngredients, setSelectedIngredients] = useState([]); // Array of selected ingredient IDs
+  const [errorMessage, setErrorMessage] = useState('');               // Component-level error messages
+  const [totalPrice, setTotalPrice] = useState(0);                    // Calculated total order price
 
-  // Calculate total price whenever selection changes
+  /**
+   * Calculate total price whenever selection changes
+   * Updates in real-time as user modifies their order
+   */
   useEffect(() => {
     let price = selectedSize ? selectedSize.basePrice : 0;
+    // Add price of each selected ingredient
     selectedIngredients.forEach(ingredientId => {
       const ingredient = ingredients.find(ing => ing.id === ingredientId);
       if (ingredient) {
@@ -30,13 +54,21 @@ const RestaurantConfigurator = (props) => {
     setTotalPrice(price);
   }, [selectedSize, selectedIngredients, ingredients]);
 
-  // Handle base dish selection
+  /**
+   * Handle base dish selection
+   * Clears any existing error messages when valid selection is made
+   * @param {Object} baseDish - Selected base dish object
+   */
   const handleBaseDishSelect = (baseDish) => {
     setSelectedBaseDish(baseDish);
-    setErrorMessage('');
+    setErrorMessage(''); // Clear error when making valid selection
   };
 
-  // Handle size selection
+  /**
+   * Handle size selection with capacity validation
+   * Prevents selection of smaller sizes if current ingredients exceed capacity
+   * @param {Object} size - Selected size object with capacity limits
+   */
   const handleSizeSelect = (size) => {
     // If changing to a smaller size, check if current ingredients fit
     if (selectedIngredients.length > size.maxIngredients) {
@@ -48,7 +80,14 @@ const RestaurantConfigurator = (props) => {
     setErrorMessage('');
   };
 
-  // Recursively add required ingredients
+  /**
+   * Recursively add required ingredients for a given ingredient
+   * Handles complex dependency chains and validates capacity constraints
+   * @param {number} ingredientId - ID of ingredient to add with dependencies
+   * @param {Array} currentSelection - Current ingredient selection
+   * @param {number} maxIngredients - Maximum allowed ingredients for selected size
+   * @returns {Object} Result object with success status and updated selection
+   */
   const addRequiredIngredientsRecursively = (ingredientId, currentSelection, maxIngredients) => {
     const ingredient = ingredients.find(ing => ing.id === ingredientId);
     if (!ingredient) return { success: false, error: 'Ingredient not found' };
@@ -61,7 +100,7 @@ const RestaurantConfigurator = (props) => {
         return { success: false, error: `Not enough space to add ${ingredient.name}` };
       }
       
-      // Check availability
+      // Check availability constraint
       if (ingredient.availability !== null && ingredient.availability <= 0) {
         return { success: false, error: `${ingredient.name} is not available` };
       }
@@ -87,7 +126,11 @@ const RestaurantConfigurator = (props) => {
     return { success: true, selection: newSelection };
   };
 
-  // Handle ingredient selection/deselection
+  /**
+   * Handle ingredient selection/deselection with comprehensive constraint checking
+   * Manages complex business rules for ingredient combinations
+   * @param {number} ingredientId - ID of ingredient to toggle
+   */
   const handleIngredientToggle = (ingredientId) => {
     const ingredient = ingredients.find(ing => ing.id === ingredientId);
     if (!ingredient) return;
@@ -105,28 +148,30 @@ const RestaurantConfigurator = (props) => {
         return;
       }
       
+      // Safe to remove - filter out the ingredient
       setSelectedIngredients(prev => prev.filter(id => id !== ingredientId));
     } else {
-      // Selecting - check various constraints
+      // Selecting - perform comprehensive validation checks
       
-      // Check dish capacity
+      // Check if size is selected first
       if (!selectedSize) {
         setErrorMessage('Please select a size first');
         return;
       }
       
+      // Check capacity constraint
       if (selectedIngredients.length >= selectedSize.maxIngredients) {
         setErrorMessage(`${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients`);
         return;
       }
       
-      // Check availability
+      // Check availability constraint
       if (ingredient.availability !== null && ingredient.availability <= 0) {
         setErrorMessage(`${ingredient.name} is not available`);
         return;
       }
       
-      // Check incompatibilities
+      // Check incompatibility constraints
       const selectedIngredientNames = selectedIngredients
         .map(id => ingredients.find(ing => ing.id === id)?.name)
         .filter(Boolean);
@@ -151,11 +196,15 @@ const RestaurantConfigurator = (props) => {
       setSelectedIngredients(result.selection);
     }
     
-    setErrorMessage('');
+    setErrorMessage(''); // Clear error on successful operation
   };
 
-  // Handle order submission
+  /**
+   * Handle order submission with validation
+   * Validates complete order before sending to server
+   */
   const handleSubmitOrder = async () => {
+    // Validate required selections
     if (!selectedBaseDish) {
       setErrorMessage('Please select a dish type');
       return;
@@ -167,29 +216,37 @@ const RestaurantConfigurator = (props) => {
     }
 
     try {
+      // Create combined dish ID and submit order
       const dishId = `${selectedBaseDish.id}_${selectedSize.id}`;
       await createOrder(dishId, selectedIngredients);
+      
       // Reset form after successful order
       setSelectedBaseDish(null);
       setSelectedSize(null);
       setSelectedIngredients([]);
       setErrorMessage('');
     } catch (err) {
+      // Handle order creation errors
       if (err.error) {
         setErrorMessage(err.error);
       } else {
-        handleErrors(err);
+        handleErrors(err); // Delegate to global error handler
       }
     }
   };
 
-  // Check if ingredient can be selected
+  /**
+   * Check if ingredient can be selected based on current constraints
+   * @param {Object} ingredient - Ingredient to check
+   * @returns {boolean} Whether ingredient can be selected
+   */
   const canSelectIngredient = (ingredient) => {
-    if (!selectedSize) return false;
-    if (selectedIngredients.includes(ingredient.id)) return true;
-    if (selectedIngredients.length >= selectedSize.maxIngredients) return false;
-    if (ingredient.availability !== null && ingredient.availability <= 0) return false;
+    if (!selectedSize) return false; // Size must be selected first
+    if (selectedIngredients.includes(ingredient.id)) return true; // Already selected
+    if (selectedIngredients.length >= selectedSize.maxIngredients) return false; // Capacity exceeded
+    if (ingredient.availability !== null && ingredient.availability <= 0) return false; // Not available
     
+    // Check for incompatibilities with currently selected ingredients
     const selectedIngredientNames = selectedIngredients
       .map(id => ingredients.find(ing => ing.id === id)?.name)
       .filter(Boolean);
@@ -201,18 +258,27 @@ const RestaurantConfigurator = (props) => {
     return !hasIncompatible;
   };
 
-  // Check if ingredient can be deselected
+  /**
+   * Check if ingredient can be deselected
+   * @param {Object} ingredient - Ingredient to check
+   * @returns {boolean} Whether ingredient can be deselected
+   */
   const canDeselectIngredient = (ingredient) => {
     if (!selectedIngredients.includes(ingredient.id)) return false;
     
+    // Check if any other selected ingredients require this one
     const dependentIngredients = selectedIngredients
       .map(id => ingredients.find(ing => ing.id === id))
       .filter(ing => ing && ing.requires.includes(ingredient.name));
     
-    return dependentIngredients.length === 0;
+    return dependentIngredients.length === 0; // Can deselect if no dependencies
   };
 
-  // Get tooltip message for non-selectable ingredients
+  /**
+   * Get tooltip message explaining why ingredient cannot be selected/deselected
+   * @param {Object} ingredient - Ingredient to check
+   * @returns {string|null} Tooltip message or null if no constraint
+   */
   const getConstraintTooltip = (ingredient) => {
     if (selectedIngredients.includes(ingredient.id)) {
       // Check if it can be deselected
@@ -226,6 +292,7 @@ const RestaurantConfigurator = (props) => {
       return null;
     }
 
+    // Check various constraints for selection
     if (!selectedSize) {
       return 'Please select a size first';
     }
@@ -255,6 +322,7 @@ const RestaurantConfigurator = (props) => {
 
   return (
     <>
+      {/* Error message display */}
       {errorMessage && (
         <Alert 
           variant="danger" 
@@ -269,6 +337,7 @@ const RestaurantConfigurator = (props) => {
       )}
       
       <Row>
+        {/* Base Dish Selection Column */}
         <Col lg={2} className="mb-4">
           <Card 
             className="h-100 shadow-lg border-0 rounded-4"
@@ -292,6 +361,7 @@ const RestaurantConfigurator = (props) => {
                   style={{
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
+                    // Dynamic styling based on selection state
                     background: selectedBaseDish?.id === baseDish.id 
                       ? 'linear-gradient(135deg, #d1ecf1 0%, #a8dadc 100%)'
                       : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
@@ -305,6 +375,7 @@ const RestaurantConfigurator = (props) => {
                     <strong style={{ color: '#2c3e50' }}>
                       {baseDish.name.charAt(0).toUpperCase() + baseDish.name.slice(1)}
                     </strong>
+                    {/* Selection indicator */}
                     {selectedBaseDish?.id === baseDish.id && (
                       <div className="mt-2">
                         <i 
@@ -320,6 +391,7 @@ const RestaurantConfigurator = (props) => {
           </Card>
         </Col>
 
+        {/* Size Selection Column */}
         <Col lg={2} className="mb-4">
           <Card 
             className="h-100 shadow-lg border-0 rounded-4"
@@ -343,6 +415,7 @@ const RestaurantConfigurator = (props) => {
                   style={{
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
+                    // Dynamic styling based on selection state
                     background: selectedSize?.id === size.id 
                       ? 'linear-gradient(135deg, #d1ecf1 0%, #a8dadc 100%)'
                       : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
@@ -366,6 +439,7 @@ const RestaurantConfigurator = (props) => {
                       <small className="text-muted d-block mt-1">
                         Max {size.maxIngredients}
                       </small>
+                      {/* Selection indicator */}
                       {selectedSize?.id === size.id && (
                         <div className="mt-2">
                           <i 
@@ -382,6 +456,7 @@ const RestaurantConfigurator = (props) => {
           </Card>
         </Col>
 
+        {/* Ingredients Selection Column */}
         <Col lg={5} className="mb-4">
           <Card 
             className="h-100 shadow-lg border-0 rounded-4"
@@ -399,12 +474,14 @@ const RestaurantConfigurator = (props) => {
             <Card.Body className="p-4">
               <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
                 {ingredients.map(ingredient => {
+                  // Calculate constraint status for this ingredient
                   const isSelected = selectedIngredients.includes(ingredient.id);
                   const canSelect = canSelectIngredient(ingredient);
                   const canDeselect = canDeselectIngredient(ingredient);
                   const isUnavailable = ingredient.availability !== null && ingredient.availability <= 0;
                   const tooltipMessage = getConstraintTooltip(ingredient);
                   
+                  // Dynamic styling based on ingredient state
                   let cardStyle = {
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
@@ -412,21 +489,26 @@ const RestaurantConfigurator = (props) => {
                   };
 
                   if (isSelected) {
+                    // Selected ingredient styling
                     cardStyle.background = 'linear-gradient(135deg, #d1ecf1 0%, #a8dadc 100%)';
                     cardStyle.border = '2px solid #27ae60';
                     cardStyle.transform = 'translateY(-2px)';
                     if (!canDeselect) {
+                      // Cannot be deselected (required by others)
                       cardStyle.cursor = 'not-allowed';
                       cardStyle.opacity = '0.8';
                     }
                   } else if (!canSelect) {
+                    // Cannot be selected due to constraints
                     cardStyle.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
                     cardStyle.opacity = '0.7';
                     cardStyle.cursor = 'not-allowed';
                   } else if (isUnavailable) {
+                    // Unavailable ingredient styling
                     cardStyle.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
                     cardStyle.border = '2px solid #e74c3c';
                   } else {
+                    // Default selectable ingredient styling
                     cardStyle.background = 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)';
                   }
 
@@ -436,6 +518,7 @@ const RestaurantConfigurator = (props) => {
                       className="mb-3 rounded-3 shadow-sm"
                       style={cardStyle}
                       onClick={() => {
+                        // Handle click based on current state and constraints
                         if (isSelected && canDeselect) {
                           handleIngredientToggle(ingredient.id);
                         } else if (!isSelected && canSelect) {
@@ -450,6 +533,7 @@ const RestaurantConfigurator = (props) => {
                               <strong className="me-2" style={{ color: '#2c3e50' }}>
                                 {ingredient.name}
                               </strong>
+                              {/* Selection badge */}
                               {isSelected && (
                                 <Badge 
                                   className="px-2 py-1 rounded-pill"
@@ -468,6 +552,7 @@ const RestaurantConfigurator = (props) => {
                             </div>
                           </div>
                           <div className="text-end">
+                            {/* Availability indicator */}
                             {ingredient.availability !== null && (
                               <div 
                                 className="badge px-2 py-1 mb-2 rounded-pill small"
@@ -482,6 +567,7 @@ const RestaurantConfigurator = (props) => {
                                 {ingredient.availability}
                               </div>
                             )}
+                            {/* Requirements indicator */}
                             {ingredient.requires.length > 0 && (
                               <div className="mb-1">
                                 <small 
@@ -497,6 +583,7 @@ const RestaurantConfigurator = (props) => {
                                 </small>
                               </div>
                             )}
+                            {/* Incompatibilities indicator */}
                             {ingredient.incompatible.length > 0 && (
                               <div>
                                 <small 
@@ -550,6 +637,7 @@ const RestaurantConfigurator = (props) => {
           </Card>
         </Col>
 
+        {/* Order Summary Column */}
         <Col lg={3}>
           <Card 
             className="shadow-lg border-0 rounded-4 position-sticky"
@@ -569,6 +657,7 @@ const RestaurantConfigurator = (props) => {
               </h4>
             </Card.Header>
             <Card.Body className="p-4">
+              {/* Selected dish display */}
               {selectedBaseDish && selectedSize ? (
                 <div className="mb-4">
                   <div className="d-flex align-items-center mb-3">
@@ -597,6 +686,7 @@ const RestaurantConfigurator = (props) => {
                   </Card>
                 </div>
               ) : (
+                // Empty state when no dish selected
                 <div className="mb-4 text-center py-4" style={{ color: '#7f8c8d' }}>
                   <i 
                     className="bi bi-bowl" 
@@ -608,6 +698,7 @@ const RestaurantConfigurator = (props) => {
                 </div>
               )}
 
+              {/* Selected ingredients display */}
               {selectedIngredients.length > 0 && (
                 <div className="mb-4">
                   <div className="d-flex align-items-center mb-3">
@@ -654,6 +745,7 @@ const RestaurantConfigurator = (props) => {
                 }} 
               />
               
+              {/* Total price display */}
               <div 
                 className="text-center p-4 mb-4 rounded-3"
                 style={{
@@ -673,6 +765,7 @@ const RestaurantConfigurator = (props) => {
                 </div>
               </div>
 
+              {/* Order submission button */}
               <div className="d-grid">
                 <Button 
                   size="lg"

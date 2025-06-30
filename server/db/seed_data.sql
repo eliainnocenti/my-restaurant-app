@@ -9,7 +9,7 @@ BEGIN TRANSACTION;
 -- ----------------------------------------------------------------------------
 INSERT INTO users (id, email, name, hash, salt, secret) VALUES
     (1, 'u1@rest.com', 'Andrea', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
-    (2, 'u2@rest.com', 'Elia',   '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', ''),
+    (2, 'u2@rest.com', 'Elia',   '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
     (3, 'u3@rest.com', 'Renato', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI'),
     (4, 'u4@rest.com', 'Simone', '15d3c4fca80fa608dcedeb65ac10eff78d20c88800d016369a3d2963742ea288', '72e4eeb14def3b21', 'LXBSMDTMSP2I5XFXIYRGFVWSFI');
 

@@ -1,19 +1,29 @@
+/**
+ * Restaurant Data Access Object (DAO)
+ * 
+ * Handles all database operations related to restaurant functionality including:
+ * - Dish management (combinations of base dishes and sizes)
+ * - Ingredient management with constraints (requirements, incompatibilities, availability)
+ * - Order creation, retrieval, and cancellation with automatic availability tracking
+ * 
+ * Uses SQLite database with complex queries to handle dish-size combinations
+ * and ingredient constraint relationships.
+ */
+
 'use strict';
-
-/* Data Access Object (DAO) for restaurant-related database operations */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
 
 const db = require('../db');
 
 /**
  * Get all dishes (combinations of base dishes and sizes)
  * Creates a Cartesian product of base dishes and sizes to show all possible combinations
+ * Uses CROSS JOIN to generate all dish-size variants with combined IDs for easier handling
  * @returns {Promise<Array>} Array of dish objects with combined IDs (baseDishId_sizeId)
  */
 exports.getAllDishes = () => {
   return new Promise((resolve, reject) => {
-    // Use CROSS JOIN to create all possible dish-size combinations
+    // CROSS JOIN creates all possible combinations of base dishes and sizes
+    // Combined ID format allows frontend to easily reference specific dish-size pairs
     const sql = `
       SELECT 
         bd.id || '_' || s.id as id,
@@ -30,13 +40,13 @@ exports.getAllDishes = () => {
     db.all(sql, [], (err, rows) => {
       if (err) reject(err);
       else resolve(rows.map(row => ({
-        id: row.id,
+        id: row.id,                         // Combined ID for easy reference
         name: row.name,
         size: row.size,
         price: row.price,
         maxIngredients: row.maxIngredients,
-        baseDishId: row.baseDishId,
-        sizeId: row.sizeId
+        baseDishId: row.baseDishId,         // Original base dish ID
+        sizeId: row.sizeId                  // Original size ID
       })));
     });
   });
@@ -45,11 +55,13 @@ exports.getAllDishes = () => {
 /**
  * Get all ingredients with their constraint relationships
  * Includes requirements and incompatibilities for UI constraint handling
+ * Uses complex JOINs to aggregate constraint data into arrays
  * @returns {Promise<Array>} Array of ingredient objects with relationships
  */
 exports.getAllIngredients = () => {
   return new Promise((resolve, reject) => {
-    // Complex query to fetch ingredients with their requirements and incompatibilities
+    // Complex query joins ingredient constraints and aggregates them
+    // GROUP_CONCAT creates comma-separated lists of related ingredient names
     const sql = `
       SELECT 
         i.id,
@@ -73,7 +85,7 @@ exports.getAllIngredients = () => {
         name: row.name,
         price: row.price,
         availability: row.availability,
-        // Convert comma-separated strings to arrays, handle null values
+        // Convert comma-separated strings to arrays for easier frontend handling
         requires: row.requires ? row.requires.split(',') : [],
         incompatible: row.incompatible ? row.incompatible.split(',') : []
       })));
@@ -83,6 +95,7 @@ exports.getAllIngredients = () => {
 
 /**
  * Get a single ingredient by ID
+ * Simple lookup for ingredient validation during order creation
  * @param {number} id - The ingredient ID
  * @returns {Promise<Object|null>} Ingredient object or null if not found
  */
@@ -91,7 +104,7 @@ exports.getIngredientById = (id) => {
     const sql = 'SELECT * FROM ingredients WHERE id = ?';
     db.get(sql, [id], (err, row) => {
       if (err) reject(err);
-      else if (!row) resolve(null);
+      else if (!row) resolve(null); // Ingredient not found
       else resolve({
         id: row.id,
         name: row.name,
@@ -104,14 +117,17 @@ exports.getIngredientById = (id) => {
 
 /**
  * Get dish by combined ID (baseDishId_sizeId format)
- * Splits the combined ID and reconstructs dish information
+ * Splits the combined ID and reconstructs dish information from separate tables
+ * Used for order validation and price calculation
  * @param {string} combinedId - Combined dish ID in format "baseDishId_sizeId"
  * @returns {Promise<Object|null>} Dish object or null if not found
  */
 exports.getDishById = (combinedId) => {
   return new Promise((resolve, reject) => {
-    // Parse the combined ID format
+    // Parse the combined ID to extract base dish and size components
     const [baseDishId, sizeId] = combinedId.split('_');
+    
+    // Reconstruct dish information by joining base_dishes and sizes tables
     const sql = `
       SELECT 
         bd.id || '_' || s.id as id,
@@ -127,7 +143,7 @@ exports.getDishById = (combinedId) => {
     `;
     db.get(sql, [sizeId, baseDishId], (err, row) => {
       if (err) reject(err);
-      else if (!row) resolve(null);
+      else if (!row) resolve(null); // Invalid dish combination
       else resolve({
         id: row.id,
         name: row.name,
@@ -143,6 +159,8 @@ exports.getDishById = (combinedId) => {
 
 /**
  * Create a new order with ingredients and update availability
+ * Handles transaction-like behavior by inserting order and updating ingredient availability
+ * Processes each ingredient individually to handle availability constraints
  * @param {number} userId - ID of the user placing the order
  * @param {string} dishId - Combined dish ID (baseDishId_sizeId)
  * @param {Array<number>} ingredientIds - Array of ingredient IDs to include
@@ -151,10 +169,10 @@ exports.getDishById = (combinedId) => {
  */
 exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
   return new Promise((resolve, reject) => {
-    // Parse the combined dish ID
+    // Extract base dish and size IDs from combined dish ID
     const [baseDishId, sizeId] = dishId.split('_');
     
-    // Insert order directly into orders table (matches schema)
+    // Insert main order record with 'confirmed' status
     const orderSql = 'INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES (?, ?, ?, ?, ?)';
     db.run(orderSql, [userId, baseDishId, sizeId, 'confirmed', used2fa || 0], function(err) {
       if (err) {
@@ -162,9 +180,9 @@ exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
         return;
       }
       
-      const orderId = this.lastID;
+      const orderId = this.lastID; // SQLite provides auto-generated ID
       
-      // If no ingredients, just return the order
+      // If no ingredients selected, order is complete
       if (ingredientIds.length === 0) {
         resolve({ id: orderId });
         return;
@@ -175,9 +193,9 @@ exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
       let hasError = false;
       
       ingredientIds.forEach(ingredientId => {
-        if (hasError) return;
+        if (hasError) return; // Skip remaining if error occurred
         
-        // Insert ingredient into order_ingredients table
+        // Insert ingredient-order relationship
         const orderIngSql = 'INSERT INTO order_ingredients (order_id, ingredient_id) VALUES (?, ?)';
         db.run(orderIngSql, [orderId, ingredientId], (err) => {
           if (err) {
@@ -187,6 +205,7 @@ exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
           }
           
           // Update ingredient availability (only if it has limited availability)
+          // Prevents negative availability and only updates when constraint exists
           const updateSql = `
             UPDATE ingredients 
             SET availability = availability - 1 
@@ -200,6 +219,7 @@ exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
             }
             
             completed++;
+            // Resolve when all ingredients have been processed
             if (completed === ingredientIds.length) {
               resolve({ id: orderId });
             }
@@ -213,12 +233,13 @@ exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
 /**
  * Get all orders for a specific user with full details
  * Fetches orders and their ingredients in separate queries for better performance
+ * Calculates total prices including ingredient costs
  * @param {number} userId - ID of the user whose orders to retrieve
  * @returns {Promise<Array>} Array of order objects with full details
  */
 exports.getUserOrders = (userId) => {
   return new Promise((resolve, reject) => {
-    // First, get basic order information
+    // First query: get basic order information with dish details
     const sql = `
       SELECT 
         o.id,
@@ -242,16 +263,18 @@ exports.getUserOrders = (userId) => {
         return;
       }
       
+      // No orders found for this user
       if (rows.length === 0) {
         resolve([]);
         return;
       }
       
-      // For each order, fetch its ingredients separately
+      // For each order, fetch its ingredients separately to avoid complex JOINs
       let processedOrders = 0;
       const orders = [];
       
       rows.forEach(row => {
+        // Second query: get ingredients for this specific order
         const ingredientsSql = `
           SELECT i.name, i.price
           FROM order_ingredients oi
@@ -265,11 +288,12 @@ exports.getUserOrders = (userId) => {
             return;
           }
           
-          // Calculate total price including ingredients
+          // Process ingredient data and calculate total price
           const ingredients = ingredientRows.map(ing => ing.name);
           const ingredientPrices = ingredientRows.map(ing => ing.price);
           const totalPrice = row.dish_price + ingredientPrices.reduce((sum, price) => sum + price, 0);
           
+          // Build complete order object with all details
           orders.push({
             id: row.id,
             userId: row.user_id,
@@ -284,8 +308,8 @@ exports.getUserOrders = (userId) => {
           });
           
           processedOrders++;
+          // When all orders are processed, sort and return
           if (processedOrders === rows.length) {
-            // Sort by date descending (most recent first)
             orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
             resolve(orders);
           }
@@ -298,13 +322,14 @@ exports.getUserOrders = (userId) => {
 /**
  * Cancel an order and restore ingredient availability
  * Only confirmed orders can be cancelled, and ingredient availability is restored
+ * Implements reverse operation of order creation for availability management
  * @param {number} orderId - ID of the order to cancel
  * @param {number} userId - ID of the user (for security check)
  * @returns {Promise<void>} Promise that resolves when cancellation is complete
  */
 exports.cancelOrder = (orderId, userId) => {
   return new Promise((resolve, reject) => {
-    // First, get ingredients from the order to restore their availability
+    // First, retrieve ingredients from the order to restore their availability
     const getIngredientsSql = `
       SELECT ingredient_id 
       FROM order_ingredients
@@ -317,7 +342,8 @@ exports.cancelOrder = (orderId, userId) => {
         return;
       }
       
-      // Update order status to cancelled (only if it's currently confirmed)
+      // Update order status to cancelled (with security check)
+      // Only allows cancellation of confirmed orders by the order owner
       const updateOrderSql = 'UPDATE orders SET status = ? WHERE id = ? AND user_id = ? AND status = ?';
       db.run(updateOrderSql, ['cancelled', orderId, userId, 'confirmed'], function(err) {
         if (err) {
@@ -331,19 +357,20 @@ exports.cancelOrder = (orderId, userId) => {
           return;
         }
         
-        // If no ingredients to restore, we're done
+        // If no ingredients to restore, cancellation is complete
         if (rows.length === 0) {
           resolve();
           return;
         }
         
-        // Restore availability for each ingredient
+        // Restore availability for each ingredient that was used in the order
         let completed = 0;
         let hasError = false;
         
         rows.forEach(row => {
-          if (hasError) return;
+          if (hasError) return; // Skip remaining if error occurred
           
+          // Increment availability for ingredients that have availability tracking
           const restoreAvailabilitySql = `
             UPDATE ingredients 
             SET availability = availability + 1 
@@ -358,6 +385,7 @@ exports.cancelOrder = (orderId, userId) => {
             }
             
             completed++;
+            // Resolve when all ingredient availabilities have been restored
             if (completed === rows.length) {
               resolve();
             }
@@ -370,6 +398,7 @@ exports.cancelOrder = (orderId, userId) => {
 
 /**
  * Get all base dishes (pizza, pasta, salad, etc.)
+ * Simple lookup for menu display and order configuration
  * @returns {Promise<Array>} Array of base dish objects
  */
 exports.getBaseDishes = () => {
@@ -387,6 +416,7 @@ exports.getBaseDishes = () => {
 
 /**
  * Get all available sizes with pricing and constraints
+ * Provides size options with pricing and ingredient capacity limits
  * @returns {Promise<Array>} Array of size objects with pricing information
  */
 exports.getSizes = () => {

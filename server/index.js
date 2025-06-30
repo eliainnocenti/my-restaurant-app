@@ -1,10 +1,16 @@
 /**
- * Main server application for the Restaurant ordering system
- * Provides REST API for restaurant menu, orders, and user authentication
- * Includes support for TOTP-based two-factor authentication
+ * Restaurant Ordering System - Main Server Application
+ * 
+ * Express.js server providing REST API for restaurant menu browsing and order management.
+ * Implements comprehensive authentication system with:
+ * - Username/password login using Passport Local Strategy
+ * - TOTP-based two-factor authentication for enhanced security
+ * - Session management with different privilege levels
+ * - Order creation and cancellation with ingredient availability tracking
+ * 
+ * API includes public endpoints for menu browsing and protected endpoints for order management.
+ * Extensive logging provides audit trail for security and business operations.
  */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
 
 'use strict';
 
@@ -28,20 +34,22 @@ const port = 3001;
 
 // --- Middleware setup ---
 
-// HTTP request logging
+// HTTP request logging for debugging and monitoring
 app.use(morgan('dev'));
 
-// JSON body parsing
+// JSON body parsing for API requests
 app.use(express.json());
 
 // CORS configuration for frontend communication
+// Allows credentials (session cookies) from the Vite development server
 const corsOptions = {
   origin: 'http://localhost:5173', // Vite development server
-  credentials: true, // Allow session cookies
+  credentials: true,               // Allow session cookies
 };
 app.use(cors(corsOptions));
 
-// Session management
+// Session management with secure configuration
+// In production, use secure: true with HTTPS and stronger secret
 app.use(session({
   secret: 'restaurant-secret-key-change-in-production',
   resave: false,
@@ -56,9 +64,12 @@ app.use(passport.session());
 
 /**
  * Local authentication strategy for username/password login
+ * Validates credentials against user database and handles login attempts
+ * Provides detailed logging for security monitoring
  */
 passport.use(new LocalStrategy(async function verify(username, password, callback) {
   try {
+    // Verify credentials against database
     const user = await userDao.getUser(username, password);
     if (!user) {
       console.log('LOGIN', username, false, 'Invalid credentials');
@@ -74,6 +85,8 @@ passport.use(new LocalStrategy(async function verify(username, password, callbac
 
 /**
  * TOTP authentication strategy for two-factor authentication
+ * Decodes base32 TOTP secret and validates time-based codes
+ * Provides 30-second validity window for TOTP codes
  */
 passport.use(new TotpStrategy(
   function(user, done) {
@@ -92,6 +105,7 @@ passport.use(new TotpStrategy(
 
 /**
  * Serialize user object for session storage
+ * Stores complete user object in session for easy access
  */
 passport.serializeUser(function (user, callback) {
   console.log('AUTH', 'Serializing user', { userId: user.id, username: user.username });
@@ -100,6 +114,7 @@ passport.serializeUser(function (user, callback) {
 
 /**
  * Deserialize user object from session
+ * Retrieves user object from session data
  */
 passport.deserializeUser(function (user, callback) {
   console.log('AUTH', 'Deserializing user', { userId: user.id, username: user.username });
@@ -110,6 +125,10 @@ passport.deserializeUser(function (user, callback) {
 
 /**
  * Authentication middleware - requires valid login session
+ * Checks if user is authenticated and logs access attempts
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
  */
 const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
@@ -122,6 +141,10 @@ const isLoggedIn = (req, res, next) => {
 
 /**
  * TOTP middleware - requires completed two-factor authentication
+ * Ensures user has completed 2FA for sensitive operations
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
  */
 function isTotp(req, res, next) {
   if(req.session.method === 'totp')
@@ -131,6 +154,7 @@ function isTotp(req, res, next) {
 
 /**
  * Create client-safe user information object
+ * Removes sensitive data and adds authentication status flags
  * @param {Object} req - Express request object
  * @returns {Object} User info safe for client consumption
  */
@@ -155,6 +179,7 @@ console.log('Server starting up', { port, environment: process.env.NODE_ENV || '
 /**
  * GET /api/dishes - Get all available dish combinations
  * Returns all possible combinations of base dishes and sizes
+ * Public endpoint for menu browsing
  */
 app.get('/api/dishes', async (req, res) => {
   try {
@@ -171,6 +196,7 @@ app.get('/api/dishes', async (req, res) => {
 /**
  * GET /api/ingredients - Get all ingredients with constraints
  * Returns ingredients with availability, requirements, and incompatibilities
+ * Public endpoint for menu browsing and constraint checking
  */
 app.get('/api/ingredients', async (req, res) => {
   try {
@@ -186,6 +212,7 @@ app.get('/api/ingredients', async (req, res) => {
 
 /**
  * GET /api/base-dishes - Get all base dish types
+ * Public endpoint for menu category browsing
  */
 app.get('/api/base-dishes', (req, res) => {
   restaurantDao.getBaseDishes()
@@ -198,6 +225,7 @@ app.get('/api/base-dishes', (req, res) => {
 
 /**
  * GET /api/sizes - Get all available sizes with pricing
+ * Public endpoint for size and pricing information
  */
 app.get('/api/sizes', (req, res) => {
   restaurantDao.getSizes()
@@ -212,12 +240,14 @@ app.get('/api/sizes', (req, res) => {
 
 /**
  * POST /api/sessions - User login endpoint
- * Authenticates user with username/password
+ * Authenticates user with username/password using Passport Local Strategy
+ * Returns user info indicating if 2FA is required
  */
 app.post('/api/sessions', function(req, res, next) {
   const username = req.body.username;
   console.log('AUTH', 'Login attempt', { username });
 
+  // Use Passport to authenticate credentials
   passport.authenticate('local', (err, user, info) => { 
     if (err)
       return next(err);
@@ -245,6 +275,7 @@ app.post('/api/sessions', function(req, res, next) {
 /**
  * POST /api/login-totp - TOTP verification endpoint
  * Verifies TOTP code for two-factor authentication
+ * Requires existing authentication session and valid 6-digit code
  */
 app.post('/api/login-totp', isLoggedIn, [
   check('code').isLength({ min: 6, max: 6 }).isNumeric()
@@ -255,6 +286,7 @@ app.post('/api/login-totp', isLoggedIn, [
     return res.status(400).json({ errors: errors.array() });
   }
 
+  // Use Passport TOTP strategy to verify code
   passport.authenticate('totp', (err, user, info) => {
     if (err) {
       console.log('TOTP', req.user.username, false, 'TOTP authentication error: ' + err.message);
@@ -274,7 +306,27 @@ app.post('/api/login-totp', isLoggedIn, [
 });
 
 /**
+ * POST /api/skip-totp - Skip TOTP verification for partial authentication
+ * Allows user to proceed with limited privileges (cannot cancel orders)
+ * Provides graceful degradation for users who prefer not to use 2FA
+ */
+app.post('/api/skip-totp', isLoggedIn, (req, res) => {
+  const username = req.user.username;
+  console.log('TOTP', username, 'skipped', 'User chose to skip 2FA verification');
+  
+  // Mark session as partially authenticated (no TOTP)
+  // User can access most features but not sensitive operations
+  req.session.method = 'partial'; // Different from 'totp' for full auth
+  
+  return res.json({ 
+    message: 'Proceeding with partial authentication',
+    limitations: ['Cannot cancel orders', 'Limited to basic operations']
+  });
+});
+
+/**
  * GET /api/sessions/current - Get current user session info
+ * Returns current user information and authentication status
  */
 app.get('/api/sessions/current', (req, res) => {
   if (req.isAuthenticated()) {
@@ -287,6 +339,7 @@ app.get('/api/sessions/current', (req, res) => {
 
 /**
  * DELETE /api/sessions/current - Logout current user
+ * Destroys session and logs out user with proper cleanup
  */
 app.delete('/api/sessions/current', (req, res) => {
   const username = req.isAuthenticated() ? req.user.username : 'unknown';
@@ -305,10 +358,11 @@ app.delete('/api/sessions/current', (req, res) => {
 
 /**
  * POST /api/orders - Create a new order
- * Requires authentication; TOTP required for users with 2FA enabled
+ * Requires authentication; validates dish and ingredients before creation
+ * Updates ingredient availability automatically
  */
 app.post('/api/orders', isLoggedIn, [
-  check('dishId').isString().notEmpty(), // Changed from isInt to handle combined IDs
+  check('dishId').isString().notEmpty(), // Combined ID format
   check('ingredientIds').isArray()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -328,7 +382,7 @@ app.post('/api/orders', isLoggedIn, [
       ingredientCount: ingredientIds.length 
     });
 
-    // Validate dish exists
+    // Validate dish exists using combined ID
     const dish = await restaurantDao.getDishById(dishId);
     if (!dish) {
       console.log('ORDER_CREATE', false, { 
@@ -343,6 +397,7 @@ app.post('/api/orders', isLoggedIn, [
     let totalPrice = dish.price;
     const ingredientDetails = [];
 
+    // Check each ingredient individually for validation and pricing
     for (const ingrId of ingredientIds) {
       const ingredient = await restaurantDao.getIngredientById(ingrId);
       if (!ingredient) {
@@ -357,7 +412,7 @@ app.post('/api/orders', isLoggedIn, [
       ingredientDetails.push(ingredient.name);
     }
 
-    // Create the order
+    // Create the order with automatic availability tracking
     const order = await restaurantDao.createOrder(req.user.id, dishId, ingredientIds, totalPrice);
     
     console.log('ORDER_CREATE', true, {
@@ -388,6 +443,7 @@ app.post('/api/orders', isLoggedIn, [
 
 /**
  * GET /api/orders - Get current user's orders
+ * Returns all orders for the authenticated user with full details
  */
 app.get('/api/orders', isLoggedIn, async (req, res) => {
   try {
@@ -410,6 +466,7 @@ app.get('/api/orders', isLoggedIn, async (req, res) => {
 /**
  * DELETE /api/orders/:id - Cancel an order
  * Requires TOTP authentication for security
+ * Restores ingredient availability when order is cancelled
  */
 app.delete('/api/orders/:id', isLoggedIn, isTotp, [
   check('id').isInt({ min: 1 })
@@ -430,6 +487,7 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
       orderId 
     });
     
+    // Cancel order and restore ingredient availability
     await restaurantDao.cancelOrder(orderId, req.user.id);
     
     console.log('ORDER_CANCEL', true, { 
@@ -444,6 +502,7 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
       error: err.message 
     });
     
+    // Provide specific error messages for different failure cases
     if (err.message.includes('not found')) {
       res.status(404).json({ error: err.message });
     } else {
@@ -456,6 +515,7 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
 
 /**
  * Global error handler for unhandled errors
+ * Logs errors and provides generic response to client
  */
 app.use((err, req, res, next) => {
   console.log('SERVER', 'Unhandled error', { 
@@ -469,6 +529,7 @@ app.use((err, req, res, next) => {
 
 /**
  * 404 handler for unknown routes
+ * Logs attempted access to non-existent endpoints
  */
 app.use((req, res) => {
   console.log('HTTP', 'Route not found', { 
@@ -490,7 +551,7 @@ app.listen(port, () => {
   console.log(`API endpoints available at http://localhost:${port}/api/`);
 });
 
-// Graceful shutdown handling
+// Graceful shutdown handling for production deployment
 process.on('SIGTERM', () => {
   console.log('Received SIGTERM, shutting down gracefully');
   process.exit(0);
