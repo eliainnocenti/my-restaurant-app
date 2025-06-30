@@ -2,6 +2,8 @@
 
 /* Data Access Object (DAO) for restaurant-related database operations */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 const db = require('../db');
 
 /**

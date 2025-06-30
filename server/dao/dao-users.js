@@ -2,6 +2,8 @@
 
 /* Data Access Object (DAO) module for accessing users data */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 const db = require('../db');
 const crypto = require('crypto');
 
