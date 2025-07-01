@@ -15,6 +15,8 @@
  * - Size-based ingredient capacity limits
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Alert, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
@@ -82,7 +84,7 @@ const RestaurantConfigurator = (props) => {
 
   /**
    * Recursively add required ingredients for a given ingredient
-   * Handles complex dependency chains and validates capacity constraints
+   * Handles complex dependency chains and validates capacity constraints and incompatibilities
    * @param {number} ingredientId - ID of ingredient to add with dependencies
    * @param {Array} currentSelection - Current ingredient selection
    * @param {number} maxIngredients - Maximum allowed ingredients for selected size
@@ -103,6 +105,19 @@ const RestaurantConfigurator = (props) => {
       // Check availability constraint
       if (ingredient.availability !== null && ingredient.availability <= 0) {
         return { success: false, error: `${ingredient.name} is not available` };
+      }
+      
+      // Check incompatibility constraints with currently selected ingredients
+      const currentlySelectedIngredientNames = newSelection
+        .map(id => ingredients.find(ing => ing.id === id)?.name)
+        .filter(Boolean);
+      
+      const incompatibleWithCurrent = ingredient.incompatible.filter(incompatName => 
+        currentlySelectedIngredientNames.includes(incompatName)
+      );
+      
+      if (incompatibleWithCurrent.length > 0) {
+        return { success: false, error: `${ingredient.name} is incompatible with: ${incompatibleWithCurrent.join(', ')}` };
       }
       
       newSelection.push(ingredientId);
@@ -348,17 +363,18 @@ const RestaurantConfigurator = (props) => {
               style={{ background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' }}
             >
               <h4 className="text-center mb-0 fw-bold">
-                <i className="bi bi-bowl me-2"></i>
+                <i className="bi bi-list me-2"></i>
                 Dish Type
               </h4>
             </Card.Header>
-            <Card.Body className="p-3">
-              {baseDishes.map(baseDish => (
+            <Card.Body className="p-3 d-flex flex-column justify-content-center">
+              {baseDishes.map((baseDish, index) => (
                 <Card
                   key={baseDish.id}
                   className="mb-3 border-2 rounded-3 shadow-sm cursor-pointer"
                   onClick={() => handleBaseDishSelect(baseDish)}
                   style={{
+                    marginBottom: index === baseDishes.length - 1 ? '0' : undefined,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     // Dynamic styling based on selection state
@@ -402,17 +418,18 @@ const RestaurantConfigurator = (props) => {
               style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)' }}
             >
               <h4 className="text-center mb-0 fw-bold">
-                <i className="bi bi-rulers me-2"></i>
+                <i className="bi bi-arrows-angle-expand me-2" style={{ fontSize: '1.2rem'}}></i>
                 Size
               </h4>
             </Card.Header>
-            <Card.Body className="p-3">
-              {sizes.map(size => (
+            <Card.Body className="p-3 d-flex flex-column justify-content-center">
+              {sizes.map((size, index) => (
                 <Card
                   key={size.id}
                   className="mb-3 border-2 rounded-3 shadow-sm cursor-pointer"
                   onClick={() => handleSizeSelect(size)}
                   style={{
+                    marginBottom: index === sizes.length - 1 ? '0' : undefined,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     // Dynamic styling based on selection state

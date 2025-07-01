@@ -12,6 +12,9 @@
  * for users who skip 2FA, providing graceful feature degradation.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+// FIXME: not all the messages are error messages. at the moment, all the messages are displayed in a red box with a triangle icon.
+
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './App.css';
@@ -240,6 +243,7 @@ function App() {
   /**
    * Handle order creation
    * Creates order and refreshes related data (ingredients availability, user orders)
+   * Handles validation errors by redirecting back to configurator with preserved state
    * @param {string} dishId - Selected dish ID (baseDishId_sizeId)
    * @param {Array} ingredientIds - Selected ingredient IDs
    * @returns {Promise} Order creation promise
@@ -256,7 +260,24 @@ function App() {
         setMessage('Order created successfully!');
         navigate('/orders'); // Redirect to orders page
       })
-      .catch(err => { throw err; });
+      .catch(err => { 
+        // Handle constraint violations - keep user on configurator
+        if (err.constraintViolation) {
+          console.log('Order validation failed:', err);
+          
+          // Refresh ingredients to show current availability
+          API.getIngredients()
+            .then(ing => setIngredients(ing))
+            .catch(refreshErr => console.error('Failed to refresh ingredients:', refreshErr));
+          
+          // Don't navigate away - let user fix the order
+          // The error will be displayed and handled by the configurator component
+          throw err;
+        } else {
+          // For other errors, use standard error handling
+          throw err;
+        }
+      });
   };
 
   /**
