@@ -13,6 +13,8 @@
  * Responses are consistently parsed and errors are normalized.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import dayjs from 'dayjs';
 
 const SERVER_URL = 'http://localhost:3001/api/';
@@ -36,11 +38,18 @@ function getJson(httpResponsePromise) {
         } else {
           // Error case - try to parse error message from response
           response.json()
-            .then(obj => reject(obj)) // Server provided error details
+            .then(obj => {
+              // Preserve constraint violation information for client handling
+              if (obj.constraintViolation) {
+                reject({ ...obj, constraintViolation: obj.constraintViolation });
+              } else {
+                reject(obj);
+              }
+            })
             .catch(err => reject({ error: 'Cannot parse server response' }));
         }
       })
-      .catch(err => reject({ error: 'Cannot communicate' })); // Network error
+      .catch(err => reject({ error: 'Cannot communicate with server' })); // Network error
   });
 }
 

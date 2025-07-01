@@ -12,6 +12,8 @@
  * providing clear upgrade path for users who need 2FA to cancel orders.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import { Card, Button, Badge, Row, Col, Container, Modal } from 'react-bootstrap';
 import dayjs from 'dayjs';
 import { Link } from 'react-router';

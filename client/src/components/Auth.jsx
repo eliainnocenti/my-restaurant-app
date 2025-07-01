@@ -11,6 +11,8 @@
  * various authentication states and error conditions gracefully.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import { useState } from 'react';
 import { Form, Button, Alert, Col, Row, Card, Container, Modal } from 'react-bootstrap';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -314,8 +316,8 @@ function TotpForm(props) {
           </p>
           {/* Feature limitations list */}
           <ul>
-            <li>✅ Browse menu and create orders</li>
-            <li>❌ Cannot cancel orders</li>
+            <li><i className="bi bi-check2 text-success me-2"></i>Browse menu and create orders</li>
+            <li><i className="bi bi-x text-danger me-2"></i>Cannot cancel orders</li>
           </ul>
           <p>You can complete 2FA authentication later to unlock all features.</p>
         </Modal.Body>
@@ -406,22 +408,13 @@ function TotpForm(props) {
                       <i className="bi bi-check-circle me-2"></i>Verify Code
                     </Button>
 
-                    {/* Back to login button */}
+                    {/* Skip 2FA button */}
                     <Button 
                       variant="outline-secondary" 
-                      onClick={() => navigate('/login')} 
+                      onClick={() => setShowSkipConfirmation(true)} 
                       className="py-3 fw-semibold rounded-3"
                     >
-                      <i className="bi bi-arrow-left me-2"></i>Back to Login
-                    </Button>
-
-                    {/* Skip 2FA link button */}
-                    <Button 
-                      variant="link" 
-                      onClick={() => setShowSkipConfirmation(true)} 
-                      className="mt-2"
-                    >
-                      Skip 2FA
+                      <i className="bi bi-skip-forward me-2"></i>Skip 2FA
                     </Button>
                   </div>
                 </Form>

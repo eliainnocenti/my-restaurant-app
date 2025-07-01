@@ -12,6 +12,8 @@
  * including special indicators for 2FA status and upgrade options.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Navbar, Nav, Form, Button } from 'react-bootstrap';
 import { LoginButton, LogoutButton } from './Auth';
