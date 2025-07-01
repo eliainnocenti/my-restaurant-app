@@ -28,9 +28,14 @@ Text
 
 ## Database Tables
 
-- Table `users` - contains xx yy zz
-- Table `something` - contains ww qq ss
-- ...
+- Table `users` - contains user authentication data with columns: id (PK, auto-increment), email (unique), name, hash (password hash), salt, secret (2FA secret)
+- Table `base_dishes` - contains available dish types with columns: id (PK, auto-increment), name (unique) - stores Pizza, Pasta, Salad
+- Table `sizes` - contains size options with columns: id (PK, auto-increment), label (unique), base_price, max_ingredients - defines Small/Medium/Large with pricing and ingredient limits
+- Table `ingredients` - contains available ingredients with columns: id (PK, auto-increment), name (unique), price, availability (NULL means unlimited stock)
+- Table `ingredient_requirements` - junction table defining ingredient dependencies with columns: ingredient_id, required_id (composite PK) - e.g., mozzarella requires tomatoes
+- Table `ingredient_incompatibilities` - junction table defining ingredient conflicts with columns: ingredient_id, incompatible_with_id (composite PK) - e.g., eggs incompatible with mushrooms
+- Table `orders` - contains customer orders with columns: id (PK, auto-increment), user_id (FK), base_dish_id (FK), size_id (FK), created_at (timestamp), status (pending/confirmed/cancelled)
+- Table `order_ingredients` - junction table linking orders to ingredients with columns: order_id, ingredient_id (composite PK)
 
 ## Main React Components
 
@@ -42,10 +47,27 @@ Text
 
 ## Screenshot
 
-![Screenshot](./resources/screenshot.png)
+![Screenshot](./resources/screenshots/screenshot.png)
 
 ## Users Credentials
 
-- username, password (plus any other requested info which depends on the text)
-- username, password (plus any other requested info which depends on the text)
+| Email       | Name   | Password | 2FA Available |
+|-------------|--------|----------|---------------|
+| u1@rest.com | Andrea | pwd      | Yes           |
+| u2@rest.com | Elia   | pwd      | Yes           |
+| u3@rest.com | Renato | pwd      | Yes           |
+| u4@rest.com | Simone | pwd      | Yes           |
 
+## Pre-loaded Orders
+
+The database contains sample orders for testing:
+
+**Andrea (u1@rest.com):**
+- Small Pizza with mozzarella, tomatoes, olives (confirmed, 2024-01-20 12:30:00)
+- Small Salad with eggs, carrots (confirmed, 2024-01-20 12:35:00)
+
+**Elia (u2@rest.com):**
+- Medium Pasta with tuna, olives, parmesan, mozzarella, tomatoes (confirmed, 2024-01-21 13:15:00)
+- Large Pizza with ham, eggs, olives, potatoes (confirmed, 2024-01-21 13:20:00)
+
+*Note: Additional users (Renato and Simone) are available for testing but have no pre-loaded orders.*
