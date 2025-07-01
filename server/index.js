@@ -12,6 +12,8 @@
  * Extensive logging provides audit trail for security and business operations.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 'use strict';
 
 const express = require('express');
@@ -362,7 +364,7 @@ app.delete('/api/sessions/current', (req, res) => {
  * Updates ingredient availability automatically
  */
 app.post('/api/orders', isLoggedIn, [
-  check('dishId').isString().notEmpty(), // Combined ID format
+  check('dishId').isString().notEmpty(), // Combined ID format: baseDishId_sizeId
   check('ingredientIds').isArray()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -382,6 +384,17 @@ app.post('/api/orders', isLoggedIn, [
       ingredientCount: ingredientIds.length 
     });
 
+    // Parse combined dish ID to get base dish and size
+    const [baseDishId, sizeId] = dishId.split('_');
+    if (!baseDishId || !sizeId) {
+      console.log('ORDER_CREATE', false, { 
+        username: req.user.username, 
+        reason: 'Invalid dish ID format',
+        dishId 
+      });
+      return res.status(400).json({ error: 'Invalid dish ID format' });
+    }
+
     // Validate dish exists using combined ID
     const dish = await restaurantDao.getDishById(dishId);
     if (!dish) {
@@ -392,35 +405,186 @@ app.post('/api/orders', isLoggedIn, [
       });
       return res.status(400).json({ error: 'Invalid dish' });
     }
-    
-    // Validate all ingredients exist and calculate total price
-    let totalPrice = dish.price;
-    const ingredientDetails = [];
 
-    // Check each ingredient individually for validation and pricing
+    // Get size information for capacity validation
+    const sizes = await restaurantDao.getSizes();
+    const selectedSize = sizes.find(s => s.id.toString() === sizeId);
+    if (!selectedSize) {
+      console.log('ORDER_CREATE', false, { 
+        username: req.user.username, 
+        reason: 'Invalid size ID',
+        sizeId 
+      });
+      return res.status(400).json({ error: 'Invalid size' });
+    }
+
+    // SERVER-SIDE CONSTRAINT VALIDATION
+
+    // 1. Check ingredient count constraint
+    if (ingredientIds.length > selectedSize.maxIngredients) {
+      console.log('ORDER_CREATE', false, { 
+        username: req.user.username, 
+        reason: 'Too many ingredients',
+        count: ingredientIds.length,
+        max: selectedSize.maxIngredients
+      });
+      return res.status(400).json({ 
+        error: `${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients. You selected ${ingredientIds.length}.`,
+        constraintViolation: 'ingredient_count',
+        maxAllowed: selectedSize.maxIngredients,
+        provided: ingredientIds.length
+      });
+    }
+
+    // 2. Fetch fresh ingredient data and validate each ingredient
+    const allIngredients = await restaurantDao.getAllIngredients();
+    const selectedIngredients = [];
+    let totalPrice = dish.price;
+
+    // Validate each ingredient exists and is available
     for (const ingrId of ingredientIds) {
-      const ingredient = await restaurantDao.getIngredientById(ingrId);
+      const ingredient = allIngredients.find(ing => ing.id === ingrId);
       if (!ingredient) {
         console.log('ORDER_CREATE', false, { 
           username: req.user.username, 
           reason: 'Invalid ingredient ID',
           ingredientId: ingrId 
         });
-        return res.status(400).json({ error: `Invalid ingredient: ${ingrId}` });
+        return res.status(400).json({ 
+          error: `Invalid ingredient: ${ingrId}`,
+          constraintViolation: 'invalid_ingredient'
+        });
       }
+
+      // Check availability constraint
+      if (ingredient.availability !== null && ingredient.availability <= 0) {
+        console.log('ORDER_CREATE', false, { 
+          username: req.user.username, 
+          reason: 'Ingredient not available',
+          ingredient: ingredient.name,
+          availability: ingredient.availability
+        });
+        return res.status(400).json({ 
+          error: `${ingredient.name} is not available (current availability: ${ingredient.availability})`,
+          constraintViolation: 'availability',
+          ingredient: ingredient.name
+        });
+      }
+
+      selectedIngredients.push(ingredient);
       totalPrice += ingredient.price;
-      ingredientDetails.push(ingredient.name);
     }
 
-    // Create the order with automatic availability tracking
-    const order = await restaurantDao.createOrder(req.user.id, dishId, ingredientIds, totalPrice);
+    // 3. Check incompatibility constraints
+    const selectedIngredientNames = selectedIngredients.map(ing => ing.name);
+    
+    for (const ingredient of selectedIngredients) {
+      const incompatibleSelected = ingredient.incompatible.filter(incompatName => 
+        selectedIngredientNames.includes(incompatName) && incompatName !== ingredient.name
+      );
+      
+      if (incompatibleSelected.length > 0) {
+        console.log('ORDER_CREATE', false, { 
+          username: req.user.username, 
+          reason: 'Incompatible ingredients',
+          ingredient: ingredient.name,
+          incompatibleWith: incompatibleSelected
+        });
+        return res.status(400).json({ 
+          error: `${ingredient.name} is incompatible with: ${incompatibleSelected.join(', ')}`,
+          constraintViolation: 'incompatibility',
+          ingredient: ingredient.name,
+          conflictsWith: incompatibleSelected
+        });
+      }
+    }
+
+    // 4. Check requirement constraints using recursive validation
+    const validateRequirements = (ingredient, checkedIngredients = new Set()) => {
+      // Prevent infinite recursion
+      if (checkedIngredients.has(ingredient.name)) {
+        return { valid: true, missing: [] };
+      }
+      checkedIngredients.add(ingredient.name);
+
+      const missingRequirements = [];
+      
+      for (const reqName of ingredient.requires) {
+        const isRequired = selectedIngredientNames.includes(reqName);
+        if (!isRequired) {
+          missingRequirements.push(reqName);
+        } else {
+          // Recursively check requirements of required ingredients
+          const reqIngredient = selectedIngredients.find(ing => ing.name === reqName);
+          if (reqIngredient) {
+            const reqResult = validateRequirements(reqIngredient, checkedIngredients);
+            if (!reqResult.valid) {
+              missingRequirements.push(...reqResult.missing);
+            }
+          }
+        }
+      }
+
+      return {
+        valid: missingRequirements.length === 0,
+        missing: missingRequirements
+      };
+    };
+
+    // Check requirements for all selected ingredients
+    for (const ingredient of selectedIngredients) {
+      const reqResult = validateRequirements(ingredient);
+      if (!reqResult.valid) {
+        console.log('ORDER_CREATE', false, { 
+          username: req.user.username, 
+          reason: 'Missing required ingredients',
+          ingredient: ingredient.name,
+          missing: reqResult.missing
+        });
+        return res.status(400).json({ 
+          error: `${ingredient.name} requires: ${reqResult.missing.join(', ')}`,
+          constraintViolation: 'requirements',
+          ingredient: ingredient.name,
+          missingRequirements: reqResult.missing
+        });
+      }
+    }
+
+    // 5. Final availability check with potential race condition protection
+    // Re-fetch ingredients to ensure we have the latest availability
+    const freshIngredients = await restaurantDao.getAllIngredients();
+    const unavailableIngredients = [];
+    
+    for (const ingrId of ingredientIds) {
+      const freshIngredient = freshIngredients.find(ing => ing.id === ingrId);
+      if (!freshIngredient || (freshIngredient.availability !== null && freshIngredient.availability <= 0)) {
+        const ingredientName = freshIngredient ? freshIngredient.name : `ID:${ingrId}`;
+        unavailableIngredients.push(ingredientName);
+      }
+    }
+
+    if (unavailableIngredients.length > 0) {
+      console.log('ORDER_CREATE', false, { 
+        username: req.user.username, 
+        reason: 'Ingredients became unavailable',
+        unavailable: unavailableIngredients
+      });
+      return res.status(400).json({ 
+        error: `The following ingredients became unavailable: ${unavailableIngredients.join(', ')}. Please refresh and try again.`,
+        constraintViolation: 'availability_changed',
+        unavailableIngredients: unavailableIngredients
+      });
+    }
+
+    // ALL VALIDATIONS PASSED - Create the order
+    const order = await restaurantDao.createOrder(req.user.id, dishId, ingredientIds);
     
     console.log('ORDER_CREATE', true, {
       username: req.user.username,
       orderId: order.id,
       dishName: dish.name,
       dishSize: dish.size,
-      ingredients: ingredientDetails,
+      ingredients: selectedIngredients.map(ing => ing.name),
       totalPrice: totalPrice
     });
 
@@ -437,7 +601,16 @@ app.post('/api/orders', isLoggedIn, [
       error: err.message,
       stack: err.stack 
     });
-    res.status(500).json({ error: err.message || 'Database error' });
+    
+    // Handle specific database constraint violations
+    if (err.message.includes('availability')) {
+      res.status(400).json({ 
+        error: err.message,
+        constraintViolation: 'availability'
+      });
+    } else {
+      res.status(500).json({ error: err.message || 'Database error' });
+    }
   }
 });
 
