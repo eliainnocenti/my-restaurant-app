@@ -17,9 +17,9 @@ INSERT INTO users (id, email, name, hash, salt, secret) VALUES
 -- 2. Base Dishes
 -- ----------------------------------------------------------------------------
 INSERT INTO base_dishes (name) VALUES
-    ('pizza'),
-    ('pasta'),
-    ('salad');
+    ('Pizza'),
+    ('Pasta'),
+    ('Salad');
 
 -- ----------------------------------------------------------------------------
 -- 3. Sizes
@@ -82,13 +82,13 @@ INSERT INTO orders (user_id, base_dish_id, size_id, status, created_at) VALUES
 -- INSERT INTO orders (user_id, base_dish_id, size_id, status, created_at, used_2fa) VALUES
     -- Andrea's small pizza
     (1,
-     (SELECT id FROM base_dishes WHERE name='pizza'),
+     (SELECT id FROM base_dishes WHERE name='Pizza'),
      (SELECT id FROM sizes       WHERE label='Small'),
      'confirmed', '2024-01-20 12:30:00' -- , TRUE
      ),
     -- Andrea’s small salad
     (1,
-     (SELECT id FROM base_dishes WHERE name='salad'),
+     (SELECT id FROM base_dishes WHERE name='Salad'),
      (SELECT id FROM sizes       WHERE label='Small'),
      'confirmed', '2024-01-20 12:35:00' -- , TRUE
      );
@@ -99,7 +99,7 @@ SELECT o.id, ing.id
 FROM orders o
 JOIN ingredients ing ON ing.name IN ('mozzarella', 'tomatoes', 'olives')
 WHERE o.user_id=1
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
+  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='Pizza')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
 -- Ingredients for Andrea’s small salad
@@ -108,7 +108,7 @@ SELECT o.id, ing.id
 FROM orders o
 JOIN ingredients ing ON ing.name IN ('eggs','carrots')
 WHERE o.user_id=1
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='salad')
+  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='Salad')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Small');
 
 -- Elia: two orders
@@ -116,13 +116,13 @@ INSERT INTO orders (user_id, base_dish_id, size_id, status, created_at) VALUES
 -- INSERT INTO orders (user_id, base_dish_id, size_id, status, created_at, used_2fa) VALUES
     -- Elia's medium pasta
     (2,
-     (SELECT id FROM base_dishes WHERE name='pasta'),
+     (SELECT id FROM base_dishes WHERE name='Pasta'),
      (SELECT id FROM sizes       WHERE label='Medium'),
      'confirmed', '2024-01-21 13:15:00' -- , FALSE
      ),
     -- Elia’s large pizza
     (2,
-     (SELECT id FROM base_dishes WHERE name='pizza'),
+     (SELECT id FROM base_dishes WHERE name='Pizza'),
      (SELECT id FROM sizes       WHERE label='Large'),
      'confirmed', '2024-01-21 13:20:00' -- , FALSE
      );
@@ -133,7 +133,7 @@ SELECT o.id, ing.id
 FROM orders o
 JOIN ingredients ing ON ing.name IN ('tuna','olives','parmesan','mozzarella','tomatoes')
 WHERE o.user_id=2
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pasta')
+  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='Pasta')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Medium');
 
 -- Ingredients for Elia’s large pizza
@@ -142,7 +142,7 @@ SELECT o.id, ing.id
 FROM orders o
 JOIN ingredients ing ON ing.name IN ('ham','eggs','olives','potatoes')
 WHERE o.user_id=2
-  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='pizza')
+  AND o.base_dish_id=(SELECT id FROM base_dishes WHERE name='Pizza')
   AND o.size_id     =(SELECT id FROM sizes       WHERE label='Large');
 
 -- -- Renato: two orders (backup for future use)

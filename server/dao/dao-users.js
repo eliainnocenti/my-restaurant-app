@@ -10,6 +10,8 @@
  * Integrates with Passport.js authentication system.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 'use strict';
 
 const db = require('../db');

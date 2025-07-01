@@ -10,6 +10,8 @@
  * and ingredient constraint relationships.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 'use strict';
 
 const db = require('../db');
@@ -164,17 +166,16 @@ exports.getDishById = (combinedId) => {
  * @param {number} userId - ID of the user placing the order
  * @param {string} dishId - Combined dish ID (baseDishId_sizeId)
  * @param {Array<number>} ingredientIds - Array of ingredient IDs to include
- * @param {boolean} used2fa - Whether 2FA was used for this order
  * @returns {Promise<Object>} Created order object with ID
  */
-exports.createOrder = (userId, dishId, ingredientIds, used2fa) => {
+exports.createOrder = (userId, dishId, ingredientIds) => {
   return new Promise((resolve, reject) => {
     // Extract base dish and size IDs from combined dish ID
     const [baseDishId, sizeId] = dishId.split('_');
     
     // Insert main order record with 'confirmed' status
-    const orderSql = 'INSERT INTO orders (user_id, base_dish_id, size_id, status, used_2fa) VALUES (?, ?, ?, ?, ?)';
-    db.run(orderSql, [userId, baseDishId, sizeId, 'confirmed', used2fa || 0], function(err) {
+    const orderSql = 'INSERT INTO orders (user_id, base_dish_id, size_id, status) VALUES (?, ?, ?, ?)';
+    db.run(orderSql, [userId, baseDishId, sizeId, 'confirmed'], function(err) {
       if (err) {
         reject(err);
         return;
@@ -246,7 +247,6 @@ exports.getUserOrders = (userId) => {
         o.user_id,
         o.created_at as order_date,
         o.status,
-        o.used_2fa,
         bd.name as dish_name,
         s.label as dish_size,
         s.base_price as dish_price
@@ -315,7 +315,7 @@ exports.getUserOrders = (userId) => {
           }
         });
       });
-    });
+    })
   });
 };
 
