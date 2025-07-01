@@ -31,7 +31,7 @@ import { LoginForm, TotpForm } from './Auth';
  */
 function GenericLayout(props) {
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', display: 'flex', flexDirection: 'column' }}>
       {/* Top navigation bar with authentication controls */}
       <Navigation 
         loggedIn={props.loggedIn} 
@@ -41,7 +41,7 @@ function GenericLayout(props) {
         upgradeTo2FA={props.upgradeTo2FA}
       />
 
-      <Container fluid className="py-4">
+      <Container fluid className="py-4" style={{ flex: 1 }}>
         {/* Global message display for errors and notifications */}
         {props.message && (
           <Row>
@@ -79,6 +79,28 @@ function GenericLayout(props) {
           <Outlet />
         )}
       </Container>
+
+      {/* Footer */}
+      <footer className="mt-auto py-3 text-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+        <Container>
+          <small className="text-muted d-block mb-1">
+            Full-stack Restaurant Ordering App for the Web Applications Exam @ PoliTo
+          </small>
+          <small className="text-muted">
+            Author: <span className="fw-semibold">Elia Innocenti</span> | 
+            <a 
+              href="https://github.com/polito-WA-2025-exams/exam2-restaurant-eliainnocenti" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-decoration-none ms-1"
+              style={{ color: '#6c757d' }}
+            >
+              <i className="bi bi-github me-1"></i>
+              GitHub Repository
+            </a>
+          </small>
+        </Container>
+      </footer>
     </div>
   );
 }
