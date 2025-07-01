@@ -90,7 +90,7 @@ CREATE TABLE orders (
     size_id       INTEGER NOT NULL,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status        TEXT    NOT NULL CHECK(status IN ('pending','confirmed','cancelled')),
-    used_2fa      BOOLEAN NOT NULL DEFAULT FALSE,
+    -- used_2fa      BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_id)      REFERENCES users(id),
     FOREIGN KEY (base_dish_id) REFERENCES base_dishes(id),
     FOREIGN KEY (size_id)      REFERENCES sizes(id)
