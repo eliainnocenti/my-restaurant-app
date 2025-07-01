@@ -13,6 +13,8 @@
  * providing consistent UI patterns and responsive design across the application.
  */
 
+// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+
 import { Row, Col, Button, Spinner, Alert, Card, Container } from 'react-bootstrap';
 import { Outlet, Link, useNavigate } from 'react-router';
 
@@ -92,6 +94,20 @@ function BrowseLayout(props) {
   const { dishes, baseDishes, sizes, ingredients, loggedIn } = props;
   const navigate = useNavigate();
 
+  /**
+   * Get appropriate icon for each dish type
+   * @param {string} dishName - Name of the dish
+   * @returns {string} Bootstrap icon class name
+   */
+  const getDishIcon = (dishName) => {
+    const name = dishName.toLowerCase();
+    // TODO: update icons (?)
+    if (name.includes('pizza')) return 'bi-pie-chart'; // bi-dash-circle
+    if (name.includes('pasta')) return 'bi-fork-knife';
+    if (name.includes('salad')) return 'bi-flower1';
+    return 'bi-star'; // fallback to star
+  };
+
   return (
     <Container>
       {/* Page header with title and action buttons */}
@@ -141,6 +157,52 @@ function BrowseLayout(props) {
         </Col>
       </Row>
 
+      {/* Call-to-action for non-authenticated users */}
+      {!loggedIn && (
+        <Row className="mb-5">
+          <Col>
+            <Card 
+              className="shadow-lg border-0 rounded-4"
+              style={{ background: 'rgba(255, 255, 255, 0.9)' }}
+            >
+              <Card.Body className="p-4">
+                <Row className="align-items-center">
+                  <Col md={2} className="text-center">
+                    <i 
+                      className="bi bi-person-plus" 
+                      style={{ fontSize: '3rem', color: '#3498db' }}
+                    ></i>
+                  </Col>
+                  <Col md={7}>
+                    <h4 className="mb-2 fw-bold" style={{ color: '#2c3e50' }}>
+                      Ready to Order?
+                    </h4>
+                    <p className="text-muted mb-0">
+                      Sign in to create your personalized order and enjoy our delicious food!
+                    </p>
+                  </Col>
+                  <Col md={3} className="text-end">
+                    <Link to="/login">
+                      <Button 
+                        size="lg"
+                        className="px-4 py-3 fw-semibold rounded-pill"
+                        style={{
+                          background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                          border: 'none'
+                        }}
+                      >
+                        <i className="bi bi-box-arrow-in-right me-2"></i>
+                        Login to Order
+                      </Button>
+                    </Link>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
       <Row>
         {/* Base Dishes Column */}
         <Col lg={3} className="mb-4">
@@ -150,21 +212,21 @@ function BrowseLayout(props) {
               style={{ background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' }}
             >
               <h3 className="mb-0 fw-bold">
-                <i className="bi bi-bowl me-3"></i>
+                <i className="bi bi-list me-3"></i>
                 Dish Types
               </h3>
             </Card.Header>
-            <Card.Body className="p-4">
+            <Card.Body className="p-4 d-flex flex-column justify-content-center">
               {/* Display each base dish type */}
-              {baseDishes.map(baseDish => (
-                <Card key={baseDish.id} className="mb-3 border-2 rounded-3 shadow-sm">
+              {baseDishes.map((baseDish, index) => (
+                <Card key={baseDish.id} className="mb-3 border-2 rounded-3 shadow-sm" style={{ marginBottom: index === baseDishes.length - 1 ? '0' : undefined }}>
                   <Card.Body className="p-4 text-center">
                     <h5 className="fw-bold mb-2" style={{ color: '#2c3e50' }}>
                       {baseDish.name.charAt(0).toUpperCase() + baseDish.name.slice(1)}
                     </h5>
                     <div className="text-muted">
-                      <i className="bi bi-star me-1"></i>
-                      Customizable with fresh ingredients
+                      <i className={`${getDishIcon(baseDish.name)} me-1`}></i>
+                      Customizable with<br />fresh ingredients
                     </div>
                   </Card.Body>
                 </Card>
@@ -174,21 +236,21 @@ function BrowseLayout(props) {
         </Col>
 
         {/* Sizes Column */}
-        <Col lg={3} className="mb-4">
+        <Col lg={4} className="mb-4">
           <Card className="h-100 shadow-lg border-0 rounded-4">
             <Card.Header 
               className="border-0 text-white py-4"
               style={{ background: 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)' }}
             >
               <h3 className="mb-0 fw-bold">
-                <i className="bi bi-rulers me-3"></i>
+                <i className="bi bi-arrows-angle-expand me-3" style={{ fontSize: '1.4rem'}}></i>
                 Available Sizes
               </h3>
             </Card.Header>
-            <Card.Body className="p-4">
+            <Card.Body className="p-4 d-flex flex-column justify-content-center">
               {/* Display size options with pricing and capacity */}
-              {sizes.map(size => (
-                <Card key={size.id} className="mb-3 border-2 rounded-3 shadow-sm">
+              {sizes.map((size, index) => (
+                <Card key={size.id} className="mb-3 border-2 rounded-3 shadow-sm" style={{ marginBottom: index === sizes.length - 1 ? '0' : undefined }}>
                   <Card.Body className="p-4">
                     <div className="d-flex justify-content-between align-items-center">
                       <div>
@@ -217,7 +279,7 @@ function BrowseLayout(props) {
         </Col>
 
         {/* Ingredients Column */}
-        <Col lg={6} className="mb-4">
+        <Col lg={5} className="mb-4">
           <Card className="h-100 shadow-lg border-0 rounded-4">
             <Card.Header 
               className="border-0 text-white py-4"
@@ -300,44 +362,6 @@ function BrowseLayout(props) {
           </Card>
         </Col>
       </Row>
-
-      {/* Call-to-action for non-authenticated users */}
-      {!loggedIn && (
-        <Row className="mt-5">
-          <Col className="text-center">
-            <Card 
-              className="mx-auto shadow-lg border-0 rounded-4"
-              style={{ maxWidth: '500px', background: 'rgba(255, 255, 255, 0.9)' }}
-            >
-              <Card.Body className="p-5">
-                <i 
-                  className="bi bi-person-plus" 
-                  style={{ fontSize: '3rem', color: '#3498db' }}
-                ></i>
-                <h4 className="mt-3 mb-3" style={{ color: '#2c3e50' }}>
-                  Ready to Order?
-                </h4>
-                <p className="text-muted mb-4">
-                  Sign in to create your personalized order and enjoy our delicious food!
-                </p>
-                <Link to="/login">
-                  <Button 
-                    size="lg"
-                    className="px-4 py-3 fw-semibold rounded-pill"
-                    style={{
-                      background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
-                      border: 'none'
-                    }}
-                  >
-                    <i className="bi bi-box-arrow-in-right me-2"></i>
-                    Login to Order
-                  </Button>
-                </Link>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      )}
     </Container>
   );
 }
