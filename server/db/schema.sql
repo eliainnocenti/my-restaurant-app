@@ -84,12 +84,12 @@ CREATE TABLE ingredient_incompatibilities (
 -- 7. Orders table
 -- ============================================================================
 CREATE TABLE orders (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id       INTEGER NOT NULL,
-    base_dish_id  INTEGER NOT NULL,
-    size_id       INTEGER NOT NULL,
+    id            INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER  NOT NULL,
+    base_dish_id  INTEGER  NOT NULL,
+    size_id       INTEGER  NOT NULL,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    status        TEXT    NOT NULL CHECK(status IN ('pending','confirmed','cancelled')),
+    status        TEXT     NOT NULL CHECK(status IN ('confirmed','cancelled')),
     -- used_2fa      BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_id)      REFERENCES users(id),
     FOREIGN KEY (base_dish_id) REFERENCES base_dishes(id),

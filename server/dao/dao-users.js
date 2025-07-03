@@ -1,16 +1,4 @@
-/**
- * User Data Access Object (DAO)
- * 
- * Handles all user-related database operations including:
- * - User authentication with password hashing verification
- * - User profile retrieval for session management
- * - TOTP secret management for two-factor authentication
- * 
- * Uses crypto.scrypt for secure password verification with salt-based hashing.
- * Integrates with Passport.js authentication system.
- */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* Data Access Object (DAO) module for accessing users data */
 
 'use strict';
 

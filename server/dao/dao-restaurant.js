@@ -1,16 +1,4 @@
-/**
- * Restaurant Data Access Object (DAO)
- * 
- * Handles all database operations related to restaurant functionality including:
- * - Dish management (combinations of base dishes and sizes)
- * - Ingredient management with constraints (requirements, incompatibilities, availability)
- * - Order creation, retrieval, and cancellation with automatic availability tracking
- * 
- * Uses SQLite database with complex queries to handle dish-size combinations
- * and ingredient constraint relationships.
- */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* Data Access Object (DAO) module for accessing restaurant data */
 
 'use strict';
 
@@ -96,23 +84,39 @@ exports.getAllIngredients = () => {
 };
 
 /**
- * Get a single ingredient by ID
- * Simple lookup for ingredient validation during order creation
- * @param {number} id - The ingredient ID
- * @returns {Promise<Object|null>} Ingredient object or null if not found
+ * Get all base dishes (pizza, pasta, salad, etc.)
+ * Simple lookup for menu display and order configuration
+ * @returns {Promise<Array>} Array of base dish objects
  */
-exports.getIngredientById = (id) => {
+exports.getBaseDishes = () => {
   return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM ingredients WHERE id = ?';
-    db.get(sql, [id], (err, row) => {
+    const sql = 'SELECT * FROM base_dishes ORDER BY name';
+    db.all(sql, [], (err, rows) => {
       if (err) reject(err);
-      else if (!row) resolve(null); // Ingredient not found
-      else resolve({
+      else resolve(rows.map(row => ({
         id: row.id,
-        name: row.name,
-        price: row.price,
-        availability: row.availability
-      });
+        name: row.name
+      })));
+    });
+  });
+};
+
+/**
+ * Get all available sizes with pricing and constraints
+ * Provides size options with pricing and ingredient capacity limits
+ * @returns {Promise<Array>} Array of size objects with pricing information
+ */
+exports.getSizes = () => {
+  return new Promise((resolve, reject) => {
+    const sql = 'SELECT * FROM sizes ORDER BY base_price';
+    db.all(sql, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows.map(row => ({
+        id: row.id,
+        label: row.label,
+        basePrice: row.base_price,
+        maxIngredients: row.max_ingredients
+      })));
     });
   });
 };
@@ -154,78 +158,6 @@ exports.getDishById = (combinedId) => {
         maxIngredients: row.maxIngredients,
         baseDishId: row.baseDishId,
         sizeId: row.sizeId
-      });
-    });
-  });
-};
-
-/**
- * Create a new order with ingredients and update availability
- * Handles transaction-like behavior by inserting order and updating ingredient availability
- * Processes each ingredient individually to handle availability constraints
- * @param {number} userId - ID of the user placing the order
- * @param {string} dishId - Combined dish ID (baseDishId_sizeId)
- * @param {Array<number>} ingredientIds - Array of ingredient IDs to include
- * @returns {Promise<Object>} Created order object with ID
- */
-exports.createOrder = (userId, dishId, ingredientIds) => {
-  return new Promise((resolve, reject) => {
-    // Extract base dish and size IDs from combined dish ID
-    const [baseDishId, sizeId] = dishId.split('_');
-    
-    // Insert main order record with 'confirmed' status
-    const orderSql = 'INSERT INTO orders (user_id, base_dish_id, size_id, status) VALUES (?, ?, ?, ?)';
-    db.run(orderSql, [userId, baseDishId, sizeId, 'confirmed'], function(err) {
-      if (err) {
-        reject(err);
-        return;
-      }
-      
-      const orderId = this.lastID; // SQLite provides auto-generated ID
-      
-      // If no ingredients selected, order is complete
-      if (ingredientIds.length === 0) {
-        resolve({ id: orderId });
-        return;
-      }
-      
-      // Process each ingredient: add to order and update availability
-      let completed = 0;
-      let hasError = false;
-      
-      ingredientIds.forEach(ingredientId => {
-        if (hasError) return; // Skip remaining if error occurred
-        
-        // Insert ingredient-order relationship
-        const orderIngSql = 'INSERT INTO order_ingredients (order_id, ingredient_id) VALUES (?, ?)';
-        db.run(orderIngSql, [orderId, ingredientId], (err) => {
-          if (err) {
-            hasError = true;
-            reject(err);
-            return;
-          }
-          
-          // Update ingredient availability (only if it has limited availability)
-          // Prevents negative availability and only updates when constraint exists
-          const updateSql = `
-            UPDATE ingredients 
-            SET availability = availability - 1 
-            WHERE id = ? AND availability IS NOT NULL AND availability > 0
-          `;
-          db.run(updateSql, [ingredientId], (err) => {
-            if (err) {
-              hasError = true;
-              reject(err);
-              return;
-            }
-            
-            completed++;
-            // Resolve when all ingredients have been processed
-            if (completed === ingredientIds.length) {
-              resolve({ id: orderId });
-            }
-          });
-        });
       });
     });
   });
@@ -320,6 +252,78 @@ exports.getUserOrders = (userId) => {
 };
 
 /**
+ * Create a new order with ingredients and update availability
+ * Handles transaction-like behavior by inserting order and updating ingredient availability
+ * Processes each ingredient individually to handle availability constraints
+ * @param {number} userId - ID of the user placing the order
+ * @param {string} dishId - Combined dish ID (baseDishId_sizeId)
+ * @param {Array<number>} ingredientIds - Array of ingredient IDs to include
+ * @returns {Promise<Object>} Created order object with ID
+ */
+exports.createOrder = (userId, dishId, ingredientIds) => {
+  return new Promise((resolve, reject) => {
+    // Extract base dish and size IDs from combined dish ID
+    const [baseDishId, sizeId] = dishId.split('_');
+    
+    // Insert main order record with 'confirmed' status
+    const orderSql = 'INSERT INTO orders (user_id, base_dish_id, size_id, status) VALUES (?, ?, ?, ?)';
+    db.run(orderSql, [userId, baseDishId, sizeId, 'confirmed'], function(err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      const orderId = this.lastID; // SQLite provides auto-generated ID
+      
+      // If no ingredients selected, order is complete
+      if (ingredientIds.length === 0) {
+        resolve({ id: orderId });
+        return;
+      }
+      
+      // Process each ingredient: add to order and update availability
+      let completed = 0;
+      let hasError = false;
+      
+      ingredientIds.forEach(ingredientId => {
+        if (hasError) return; // Skip remaining if error occurred
+        
+        // Insert ingredient-order relationship
+        const orderIngSql = 'INSERT INTO order_ingredients (order_id, ingredient_id) VALUES (?, ?)';
+        db.run(orderIngSql, [orderId, ingredientId], (err) => {
+          if (err) {
+            hasError = true;
+            reject(err);
+            return;
+          }
+          
+          // Update ingredient availability (only if it has limited availability)
+          // Prevents negative availability and only updates when constraint exists
+          const updateSql = `
+            UPDATE ingredients 
+            SET availability = availability - 1 
+            WHERE id = ? AND availability IS NOT NULL AND availability > 0
+          `;
+          db.run(updateSql, [ingredientId], (err) => {
+            if (err) {
+              hasError = true;
+              reject(err);
+              return;
+            }
+            
+            completed++;
+            // Resolve when all ingredients have been processed
+            if (completed === ingredientIds.length) {
+              resolve({ id: orderId });
+            }
+          });
+        });
+      });
+    });
+  });
+};
+
+/**
  * Cancel an order and restore ingredient availability
  * Only confirmed orders can be cancelled, and ingredient availability is restored
  * Implements reverse operation of order creation for availability management
@@ -392,44 +396,6 @@ exports.cancelOrder = (orderId, userId) => {
           });
         });
       });
-    });
-  });
-};
-
-/**
- * Get all base dishes (pizza, pasta, salad, etc.)
- * Simple lookup for menu display and order configuration
- * @returns {Promise<Array>} Array of base dish objects
- */
-exports.getBaseDishes = () => {
-  return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM base_dishes ORDER BY name';
-    db.all(sql, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows.map(row => ({
-        id: row.id,
-        name: row.name
-      })));
-    });
-  });
-};
-
-/**
- * Get all available sizes with pricing and constraints
- * Provides size options with pricing and ingredient capacity limits
- * @returns {Promise<Array>} Array of size objects with pricing information
- */
-exports.getSizes = () => {
-  return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM sizes ORDER BY base_price';
-    db.all(sql, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows.map(row => ({
-        id: row.id,
-        label: row.label,
-        basePrice: row.base_price,
-        maxIngredients: row.max_ingredients
-      })));
     });
   });
 };
