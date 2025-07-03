@@ -1,18 +1,4 @@
-/**
- * Restaurant Ordering System - Main Server Application
- * 
- * Express.js server providing REST API for restaurant menu browsing and order management.
- * Implements comprehensive authentication system with:
- * - Username/password login using Passport Local Strategy
- * - TOTP-based two-factor authentication for enhanced security
- * - Session management with different privilege levels
- * - Order creation and cancellation with ingredient availability tracking
- * 
- * API includes public endpoints for menu browsing and protected endpoints for order management.
- * Extensive logging provides audit trail for security and business operations.
- */
-
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* Restaurant Ordering System - Main Server Application */
 
 'use strict';
 
@@ -51,13 +37,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Session management with secure configuration
-// In production, use secure: true with HTTPS and stronger secret
 app.use(session({
   secret: 'restaurant-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, secure: false } // Use secure: true in production with HTTPS
 }));
+app.use(passport.authenticate('session'));
 
 // --- Passport authentication setup ---
 
@@ -457,6 +442,8 @@ app.post('/api/orders', isLoggedIn, [
       }
 
       // Check availability constraint
+      // This check is probably reduntant beacuse we will check it again before creating the order
+      // but it is useful as an early exit point to avoid unnecessary processing if an ingredient is not available
       if (ingredient.availability !== null && ingredient.availability <= 0) {
         console.log('ORDER_CREATE', false, { 
           username: req.user.username, 
@@ -722,15 +709,4 @@ app.listen(port, () => {
     logLevel: process.env.LOG_LEVEL || 'INFO'
   });
   console.log(`API endpoints available at http://localhost:${port}/api/`);
-});
-
-// Graceful shutdown handling for production deployment
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
-  process.exit(0);
 });
