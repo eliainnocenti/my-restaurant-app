@@ -115,7 +115,41 @@ Full-stack web application for restaurant ordering with user authentication, 2FA
 
 ## Screenshot
 
-![Screenshot](./resources/screenshots/screenshot.png)
+### Home Page (not logged)
+
+![home_no_logged](./resources/screenshots/home_no_logged.png)
+
+### Login Form
+
+![login_form](./resources/screenshots/login_form.png)
+
+### Totp Form
+
+![totp_form](./resources/screenshots/totp_form.png)
+
+### Skip 2FA Form
+
+![skip_2fa](./resources/screenshots/skip_2fa.png)
+
+### Home Page (logged)
+
+![home_logged](./resources/screenshots/home_logged.png)
+
+### Totp Completion Form
+
+![totp_completion_form](./resources/screenshots/totp_completion_form.png)
+
+### Home Page (logged with 2FA)
+
+![home_logged_2fa](./resources/screenshots/home_logged_2fa.png)
+
+### Order Configuration Test
+
+![order_configuration_test](./resources/screenshots/order_configuration_test.png)
+
+### Orders List
+
+![orders_list](./resources/screenshots/orders_list.png)
 
 ## Users Credentials
 
