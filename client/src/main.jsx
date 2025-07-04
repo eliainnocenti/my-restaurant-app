@@ -1,6 +1,4 @@
-/**
- * React Application Entry Point
- */
+/* React Application Entry Point */
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

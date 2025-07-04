@@ -1,21 +1,6 @@
-/**
- * API Client for Restaurant Application
- * 
- * Provides centralized HTTP communication layer between frontend and backend.
- * Implements:
- * - RESTful API calls for all restaurant operations
- * - Authentication and session management
- * - TOTP two-factor authentication
- * - Consistent error handling across all requests
- * - Automatic credential inclusion for session management
- * 
- * All requests include credentials for session cookie handling.
- * Responses are consistently parsed and errors are normalized.
- */
+/* API Client for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
-
-import dayjs from 'dayjs';
+/* Provides centralized HTTP communication layer between frontend and backend. */
 
 const SERVER_URL = 'http://localhost:3001/api/';
 

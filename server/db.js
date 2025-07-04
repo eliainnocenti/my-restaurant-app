@@ -1,10 +1,4 @@
-/**
- * Database Connection Module
- * 
- * Initializes and exports SQLite database connection for the restaurant application.
- * Provides centralized database access for all DAO modules.
- * Database file contains restaurant menu data, user accounts, and order history.
- */
+/* Database Connection Module */
 
 'use strict';
 
