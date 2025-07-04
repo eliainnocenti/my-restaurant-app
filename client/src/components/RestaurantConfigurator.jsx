@@ -69,23 +69,37 @@ const RestaurantConfigurator = (props) => {
    * @param {number} ingredientId - ID of ingredient to add with dependencies
    * @param {Array} currentSelection - Current ingredient selection
    * @param {number} maxIngredients - Maximum allowed ingredients for selected size
+   * @param {Array} dependencyChain - Chain of ingredients that led to this requirement (for error messages)
    * @returns {Object} Result object with success status and updated selection
    */
-  const addRequiredIngredientsRecursively = (ingredientId, currentSelection, maxIngredients) => {
+  const addRequiredIngredientsRecursively = (ingredientId, currentSelection, maxIngredients, dependencyChain = []) => {
     const ingredient = ingredients.find(ing => ing.id === ingredientId);
     if (!ingredient) return { success: false, error: 'Ingredient not found' };
 
     let newSelection = [...currentSelection];
+    const currentChain = [...dependencyChain, ingredient.name];
     
     // Add the ingredient itself if not already in selection
     if (!newSelection.includes(ingredientId)) {
       if (newSelection.length >= maxIngredients) {
-        return { success: false, error: `Not enough space to add ${ingredient.name}` };
+        const chainMessage = currentChain.length > 1 
+          ? ` (required by dependency chain: ${currentChain.slice(0, -1).join(' → ')})`
+          : '';
+        return { 
+          success: false, 
+          error: `Cannot add "${ingredient.name}"${chainMessage}. Not enough space - maximum ${maxIngredients} ingredients allowed.` 
+        };
       }
       
       // Check availability constraint
       if (ingredient.availability !== null && ingredient.availability <= 0) {
-        return { success: false, error: `${ingredient.name} is not available` };
+        const chainMessage = currentChain.length > 1 
+          ? ` (required by dependency chain: ${currentChain.slice(0, -1).join(' → ')})`
+          : '';
+        return { 
+          success: false, 
+          error: `Cannot add "${ingredient.name}"${chainMessage}. Ingredient is not available.` 
+        };
       }
       
       // Check incompatibility constraints with currently selected ingredients
@@ -98,7 +112,13 @@ const RestaurantConfigurator = (props) => {
       );
       
       if (incompatibleWithCurrent.length > 0) {
-        return { success: false, error: `${ingredient.name} is incompatible with: ${incompatibleWithCurrent.join(', ')}` };
+        const chainMessage = currentChain.length > 1 
+          ? ` (required by dependency chain: ${currentChain.slice(0, -1).join(' → ')})`
+          : '';
+        return { 
+          success: false, 
+          error: `Cannot add "${ingredient.name}"${chainMessage}. It is incompatible with currently selected: ${incompatibleWithCurrent.join(', ')}.` 
+        };
       }
       
       newSelection.push(ingredientId);
@@ -111,9 +131,10 @@ const RestaurantConfigurator = (props) => {
       
       // If required ingredient is not already selected, add it recursively
       if (!newSelection.includes(reqIngredient.id)) {
-        const result = addRequiredIngredientsRecursively(reqIngredient.id, newSelection, maxIngredients);
+        const result = addRequiredIngredientsRecursively(reqIngredient.id, newSelection, maxIngredients, currentChain);
         if (!result.success) {
-          return { success: false, error: `Cannot add ${ingredient.name} because ${result.error}` };
+          // Return the detailed error from the recursive call
+          return { success: false, error: result.error };
         }
         newSelection = result.selection;
       }

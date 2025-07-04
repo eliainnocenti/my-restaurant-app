@@ -560,10 +560,10 @@ function NotFoundLayout() {
 
 export { 
   GenericLayout, 
-  NotFoundLayout, 
   BrowseLayout, 
   ConfiguratorLayout, 
   OrdersLayout,
   LoginLayout, 
-  TotpLayout 
+  TotpLayout,
+  NotFoundLayout
 };

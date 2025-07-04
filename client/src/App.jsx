@@ -47,9 +47,9 @@ function App() {
   /**
    * Centralized message setter with automatic timeout cleanup
    * @param {Object} message - Message object with type and text
-   * @param {number} timeout - Timeout in milliseconds (default: 3000)
+   * @param {number} timeout - Timeout in milliseconds (default: 5000)
    */
-  const setMessageWithTimeout = (message, timeout = 3000) => {
+  const setMessageWithTimeout = (message, timeout = 5000) => {
     // Clear any existing timeout
     if (messageTimeoutRef.current) {
       clearTimeout(messageTimeoutRef.current);
