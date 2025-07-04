@@ -18,7 +18,7 @@ const restaurantDao = require('./dao/dao-restaurant');
 
 // Create Express application instance
 const app = express();
-const port = 3001;
+const PORT = 3001;
 
 // --- Middleware setup ---
 
@@ -59,13 +59,13 @@ passport.use(new LocalStrategy(async function verify(username, password, callbac
     // Verify credentials against database
     const user = await userDao.getUser(username, password);
     if (!user) {
-      console.log('LOGIN', username, false, 'Invalid credentials');
+      // console.log('LOGIN', username, false, 'Invalid credentials'); // Debug log
       return callback(null, false, 'Incorrect username or password');
     }
-    console.log('LOGIN', username, true, 'Credentials validated');
+    // console.log('LOGIN', username, true, 'Credentials validated'); // Debug log
     return callback(null, user);
   } catch (err) {
-    console.log('AUTH', 'Login verification failed', { username, error: err.message });
+    // console.log('AUTH', 'Login verification failed', { username, error: err.message }); // Debug log
     return callback(err);
   }
 }));
@@ -95,7 +95,7 @@ passport.use(new TotpStrategy(
  * Stores complete user object in session for easy access
  */
 passport.serializeUser(function (user, callback) {
-  console.log('AUTH', 'Serializing user', { userId: user.id, username: user.username });
+  // console.log('AUTH', 'Serializing user', { userId: user.id, username: user.username }); // Debug log
   callback(null, user);
 });
 
@@ -104,7 +104,11 @@ passport.serializeUser(function (user, callback) {
  * Retrieves user object from session data
  */
 passport.deserializeUser(function (user, callback) {
-  console.log('AUTH', 'Deserializing user', { userId: user.id, username: user.username });
+  // console.log('AUTH', 'Deserializing user', { userId: user.id, username: user.username }); // Debug log
+
+  // An extra check to see if the user is still in the database can be added here
+  // e.g.: return userDao.getUserById(id).then(user => callback(null, user)).catch(err => callback(err, null));
+
   return callback(null, user);
 });
 
@@ -119,10 +123,10 @@ passport.deserializeUser(function (user, callback) {
  */
 const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
-    console.log('AUTH', 'User authenticated', { username: req.user.username, route: req.url });
+    // console.log('AUTH', 'User authenticated', { username: req.user.username, route: req.url }); // Debug log
     return next();
   }
-  console.log('AUTH', 'Unauthorized access attempt', { route: req.url, ip: req.ip });
+  // console.log('AUTH', 'Unauthorized access attempt', { route: req.url, ip: req.ip }); // Debug log
   return res.status(401).json({ error: 'Not authenticated' });
 };
 
@@ -157,7 +161,7 @@ function clientUserInfo(req) {
 }
 
 // System startup logging
-console.log('Server starting up', { port, environment: process.env.NODE_ENV || 'development' });
+// console.log('Server starting up', { PORT, environment: process.env.NODE_ENV || 'development' }); // Debug log
 
 // --- API Routes ---
 
@@ -170,12 +174,12 @@ console.log('Server starting up', { port, environment: process.env.NODE_ENV || '
  */
 app.get('/api/dishes', async (req, res) => {
   try {
-    console.log('API', 'Fetching all dishes');
+    // console.log('API', 'Fetching all dishes'); // Debug log
     const dishes = await restaurantDao.getAllDishes();
-    console.log('SELECT', 'dishes', true, { count: dishes.length });
+    // console.log('SELECT', 'dishes', true, { count: dishes.length }); // Debug log
     res.json(dishes);
   } catch (err) {
-    console.log('SELECT', 'dishes', false, { error: err.message });
+    // console.log('SELECT', 'dishes', false, { error: err.message }); // Debug log
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -187,12 +191,12 @@ app.get('/api/dishes', async (req, res) => {
  */
 app.get('/api/ingredients', async (req, res) => {
   try {
-    console.log('API', 'Fetching all ingredients');
+    // console.log('API', 'Fetching all ingredients'); // Debug log
     const ingredients = await restaurantDao.getAllIngredients();
-    console.log('SELECT', 'ingredients', true, { count: ingredients.length });
+    // console.log('SELECT', 'ingredients', true, { count: ingredients.length }); // Debug log
     res.json(ingredients);
   } catch (err) {
-    console.log('SELECT', 'ingredients', false, { error: err.message });
+    // console.log('SELECT', 'ingredients', false, { error: err.message }); // Debug log
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -232,14 +236,14 @@ app.get('/api/sizes', (req, res) => {
  */
 app.post('/api/sessions', function(req, res, next) {
   const username = req.body.username;
-  console.log('AUTH', 'Login attempt', { username });
+  // console.log('AUTH', 'Login attempt', { username }); // Debug log
 
   // Use Passport to authenticate credentials
   passport.authenticate('local', (err, user, info) => { 
     if (err)
       return next(err);
     if (!user) {
-      console.log('LOGIN', username, false, info);
+      // console.log('LOGIN', username, false, info); // Debug log
       return res.status(401).json({ error: info });
     }
     
@@ -248,11 +252,11 @@ app.post('/api/sessions', function(req, res, next) {
       if (err)
         return next(err);
       
-      console.log('LOGIN', username, true, 'Session created successfully');
+      // console.log('LOGIN', username, true, 'Session created successfully'); // Debug log
       
       // Return user info - client will check if 2FA is needed
       const userInfo = clientUserInfo(req);
-      console.log('LOGIN', username, true, `2FA required: ${userInfo.canDoTotp && !userInfo.isTotp}`);
+      // console.log('LOGIN', username, true, `2FA required: ${userInfo.canDoTotp && !userInfo.isTotp}`); // Debug log
       
       return res.json(userInfo);
     });
@@ -269,24 +273,24 @@ app.post('/api/login-totp', isLoggedIn, [
 ], (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('API', 'TOTP validation failed', { errors: errors.array() });
+    // console.log('API', 'TOTP validation failed', { errors: errors.array() }); // Debug log
     return res.status(400).json({ errors: errors.array() });
   }
 
   // Use Passport TOTP strategy to verify code
   passport.authenticate('totp', (err, user, info) => {
     if (err) {
-      console.log('TOTP', req.user.username, false, 'TOTP authentication error: ' + err.message);
+      // console.log('TOTP', req.user.username, false, 'TOTP authentication error: ' + err.message); // Debug log
       return res.status(500).json({ error: 'TOTP verification failed' });
     }
     if (!user) {
-      console.log('TOTP', req.user.username, false, 'Invalid TOTP code');
+      // console.log('TOTP', req.user.username, false, 'Invalid TOTP code'); // Debug log
       return res.status(401).json({ error: 'Invalid TOTP code' });
     }
     
     // TOTP verification successful - mark session as fully authenticated
     req.session.method = 'totp';
-    console.log('TOTP', req.user.username, true, 'TOTP verification successful');
+    // console.log('TOTP', req.user.username, true, 'TOTP verification successful'); // Debug log
     
     return res.json({ otp: 'authorized' });
   })(req, res, next);
@@ -299,7 +303,7 @@ app.post('/api/login-totp', isLoggedIn, [
  */
 app.post('/api/skip-totp', isLoggedIn, (req, res) => {
   const username = req.user.username;
-  console.log('TOTP', username, 'skipped', 'User chose to skip 2FA verification');
+  // console.log('TOTP', username, 'skipped', 'User chose to skip 2FA verification'); // Debug log
   
   // Mark session as partially authenticated (no TOTP)
   // User can access most features but not sensitive operations
@@ -317,10 +321,10 @@ app.post('/api/skip-totp', isLoggedIn, (req, res) => {
  */
 app.get('/api/sessions/current', (req, res) => {
   if (req.isAuthenticated()) {
-    console.log('AUTH', 'Current user session retrieved', { username: req.user.username });
+    // console.log('AUTH', 'Current user session retrieved', { username: req.user.username }); // Debug log
     return res.json(clientUserInfo(req));
   }
-  console.log('AUTH', 'No active user session found');
+  // console.log('AUTH', 'No active user session found'); // Debug log
   res.status(401).json({ error: 'Not authenticated' });
 });
 
@@ -333,10 +337,10 @@ app.delete('/api/sessions/current', (req, res) => {
   
   req.logout(err => {
     if (err) {
-      console.log('AUTH', 'Logout failed', { username, error: err.message });
+      // console.log('AUTH', 'Logout failed', { username, error: err.message }); // Debug log
       return res.status(500).json({ error: 'Logout error' });
     }
-    console.log('LOGOUT', username, true, 'Session destroyed');
+    // console.log('LOGOUT', username, true, 'Session destroyed'); // Debug log
     res.json({ message: 'Logout successful' });
   });
 });
@@ -354,40 +358,40 @@ app.post('/api/orders', isLoggedIn, [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('API', 'Order creation validation failed', { 
-      username: req.user.username,
-      errors: errors.array() 
-    });
+    // console.log('API', 'Order creation validation failed', { 
+    //   username: req.user.username,
+    //   errors: errors.array() 
+    // }); // Debug log
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { dishId, ingredientIds } = req.body;
-    console.log('BUSINESS', 'Order creation started', { 
-      username: req.user.username, 
-      dishId, 
-      ingredientCount: ingredientIds.length 
-    });
+    // console.log('BUSINESS', 'Order creation started', { 
+    //   username: req.user.username, 
+    //   dishId, 
+    //   ingredientCount: ingredientIds.length 
+    // }); // Debug log
 
     // Parse combined dish ID to get base dish and size
     const [baseDishId, sizeId] = dishId.split('_');
     if (!baseDishId || !sizeId) {
-      console.log('ORDER_CREATE', false, { 
-        username: req.user.username, 
-        reason: 'Invalid dish ID format',
-        dishId 
-      });
+      // console.log('ORDER_CREATE', false, { 
+      //   username: req.user.username, 
+      //   reason: 'Invalid dish ID format',
+      //   dishId 
+      // }); // Debug log
       return res.status(400).json({ error: 'Invalid dish ID format' });
     }
 
     // Validate dish exists using combined ID
     const dish = await restaurantDao.getDishById(dishId);
     if (!dish) {
-      console.log('ORDER_CREATE', false, { 
-        username: req.user.username, 
-        reason: 'Invalid dish ID',
-        dishId 
-      });
+      // console.log('ORDER_CREATE', false, { 
+      //   username: req.user.username, 
+      //   reason: 'Invalid dish ID',
+      //   dishId 
+      // }); // Debug log
       return res.status(400).json({ error: 'Invalid dish' });
     }
 
@@ -395,11 +399,11 @@ app.post('/api/orders', isLoggedIn, [
     const sizes = await restaurantDao.getSizes();
     const selectedSize = sizes.find(s => s.id.toString() === sizeId);
     if (!selectedSize) {
-      console.log('ORDER_CREATE', false, { 
-        username: req.user.username, 
-        reason: 'Invalid size ID',
-        sizeId 
-      });
+      // console.log('ORDER_CREATE', false, { 
+      //   username: req.user.username, 
+      //   reason: 'Invalid size ID',
+      //   sizeId 
+      // }); // Debug log
       return res.status(400).json({ error: 'Invalid size' });
     }
 
@@ -407,12 +411,12 @@ app.post('/api/orders', isLoggedIn, [
 
     // 1. Check ingredient count constraint
     if (ingredientIds.length > selectedSize.maxIngredients) {
-      console.log('ORDER_CREATE', false, { 
-        username: req.user.username, 
-        reason: 'Too many ingredients',
-        count: ingredientIds.length,
-        max: selectedSize.maxIngredients
-      });
+      // console.log('ORDER_CREATE', false, { 
+      //   username: req.user.username, 
+      //   reason: 'Too many ingredients',
+      //   count: ingredientIds.length,
+      //   max: selectedSize.maxIngredients
+      // }); // Debug log
       return res.status(400).json({ 
         error: `${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients. You selected ${ingredientIds.length}.`,
         constraintViolation: 'ingredient_count',
@@ -430,11 +434,11 @@ app.post('/api/orders', isLoggedIn, [
     for (const ingrId of ingredientIds) {
       const ingredient = allIngredients.find(ing => ing.id === ingrId);
       if (!ingredient) {
-        console.log('ORDER_CREATE', false, { 
-          username: req.user.username, 
-          reason: 'Invalid ingredient ID',
-          ingredientId: ingrId 
-        });
+        // console.log('ORDER_CREATE', false, { 
+        //   username: req.user.username, 
+        //   reason: 'Invalid ingredient ID',
+        //   ingredientId: ingrId 
+        // }); // Debug log
         return res.status(400).json({ 
           error: `Invalid ingredient: ${ingrId}`,
           constraintViolation: 'invalid_ingredient'
@@ -445,12 +449,12 @@ app.post('/api/orders', isLoggedIn, [
       // This check is probably reduntant beacuse we will check it again before creating the order
       // but it is useful as an early exit point to avoid unnecessary processing if an ingredient is not available
       if (ingredient.availability !== null && ingredient.availability <= 0) {
-        console.log('ORDER_CREATE', false, { 
-          username: req.user.username, 
-          reason: 'Ingredient not available',
-          ingredient: ingredient.name,
-          availability: ingredient.availability
-        });
+        // console.log('ORDER_CREATE', false, { 
+        //   username: req.user.username, 
+        //   reason: 'Ingredient not available',
+        //   ingredient: ingredient.name,
+        //   availability: ingredient.availability
+        // }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} is not available (current availability: ${ingredient.availability})`,
           constraintViolation: 'availability',
@@ -471,12 +475,12 @@ app.post('/api/orders', isLoggedIn, [
       );
       
       if (incompatibleSelected.length > 0) {
-        console.log('ORDER_CREATE', false, { 
-          username: req.user.username, 
-          reason: 'Incompatible ingredients',
-          ingredient: ingredient.name,
-          incompatibleWith: incompatibleSelected
-        });
+        // console.log('ORDER_CREATE', false, { 
+        //   username: req.user.username, 
+        //   reason: 'Incompatible ingredients',
+        //   ingredient: ingredient.name,
+        //   incompatibleWith: incompatibleSelected
+        // }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} is incompatible with: ${incompatibleSelected.join(', ')}`,
           constraintViolation: 'incompatibility',
@@ -522,12 +526,12 @@ app.post('/api/orders', isLoggedIn, [
     for (const ingredient of selectedIngredients) {
       const reqResult = validateRequirements(ingredient);
       if (!reqResult.valid) {
-        console.log('ORDER_CREATE', false, { 
-          username: req.user.username, 
-          reason: 'Missing required ingredients',
-          ingredient: ingredient.name,
-          missing: reqResult.missing
-        });
+        // console.log('ORDER_CREATE', false, { 
+        //   username: req.user.username, 
+        //   reason: 'Missing required ingredients',
+        //   ingredient: ingredient.name,
+        //   missing: reqResult.missing
+        // }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} requires: ${reqResult.missing.join(', ')}`,
           constraintViolation: 'requirements',
@@ -551,11 +555,11 @@ app.post('/api/orders', isLoggedIn, [
     }
 
     if (unavailableIngredients.length > 0) {
-      console.log('ORDER_CREATE', false, { 
-        username: req.user.username, 
-        reason: 'Ingredients became unavailable',
-        unavailable: unavailableIngredients
-      });
+      // console.log('ORDER_CREATE', false, { 
+      //   username: req.user.username, 
+      //   reason: 'Ingredients became unavailable',
+      //   unavailable: unavailableIngredients
+      // }); // Debug log
       return res.status(400).json({ 
         error: `The following ingredients became unavailable: ${unavailableIngredients.join(', ')}. Please refresh and try again.`,
         constraintViolation: 'availability_changed',
@@ -566,14 +570,14 @@ app.post('/api/orders', isLoggedIn, [
     // ALL VALIDATIONS PASSED - Create the order
     const order = await restaurantDao.createOrder(req.user.id, dishId, ingredientIds);
     
-    console.log('ORDER_CREATE', true, {
-      username: req.user.username,
-      orderId: order.id,
-      dishName: dish.name,
-      dishSize: dish.size,
-      ingredients: selectedIngredients.map(ing => ing.name),
-      totalPrice: totalPrice
-    });
+    // console.log('ORDER_CREATE', true, {
+    //   username: req.user.username,
+    //   orderId: order.id,
+    //   dishName: dish.name,
+    //   dishSize: dish.size,
+    //   ingredients: selectedIngredients.map(ing => ing.name),
+    //   totalPrice: totalPrice
+    // }); // Debug log
 
     res.status(201).json({
       id: order.id,
@@ -583,11 +587,11 @@ app.post('/api/orders', isLoggedIn, [
       message: 'Order created successfully'
     });
   } catch (err) {
-    console.log('BUSINESS', 'Order creation failed', { 
-      username: req.user.username,
-      error: err.message,
-      stack: err.stack 
-    });
+    // console.log('BUSINESS', 'Order creation failed', { 
+    //   username: req.user.username,
+    //   error: err.message,
+    //   stack: err.stack 
+    // }); // Debug log
     
     // Handle specific database constraint violations
     if (err.message.includes('availability')) {
@@ -607,18 +611,18 @@ app.post('/api/orders', isLoggedIn, [
  */
 app.get('/api/orders', isLoggedIn, async (req, res) => {
   try {
-    console.log('API', 'Fetching user orders', { username: req.user.username });
+    // console.log('API', 'Fetching user orders', { username: req.user.username }); // Debug log
     const orders = await restaurantDao.getUserOrders(req.user.id);
-    console.log('SELECT', 'orders', true, { 
-      username: req.user.username,
-      orderCount: orders.length 
-    });
+    // console.log('SELECT', 'orders', true, { 
+    //   username: req.user.username,
+    //   orderCount: orders.length 
+    // }); // Debug log
     res.json(orders);
   } catch (err) {
-    console.log('SELECT', 'orders', false, { 
-      username: req.user.username,
-      error: err.message 
-    });
+    // console.log('SELECT', 'orders', false, { 
+    //   username: req.user.username,
+    //   error: err.message 
+    // }); // Debug log
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -633,34 +637,34 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('API', 'Order cancellation validation failed', { 
-      username: req.user.username,
-      errors: errors.array() 
-    });
+    // console.log('API', 'Order cancellation validation failed', { 
+    //   username: req.user.username,
+    //   errors: errors.array() 
+    // }); // Debug log
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const orderId = parseInt(req.params.id, 10);
-    console.log('BUSINESS', 'Order cancellation started', { 
-      username: req.user.username, 
-      orderId 
-    });
+    // console.log('BUSINESS', 'Order cancellation started', { 
+    //   username: req.user.username, 
+    //   orderId 
+    // }); // Debug log
     
     // Cancel order and restore ingredient availability
     await restaurantDao.cancelOrder(orderId, req.user.id);
     
-    console.log('ORDER_CANCEL', true, { 
-      username: req.user.username, 
-      orderId 
-    });
+    // console.log('ORDER_CANCEL', true, { 
+    //   username: req.user.username, 
+    //   orderId 
+    // }); // Debug log
     res.json({ message: 'Order cancelled successfully' });
   } catch (err) {
-    console.log('BUSINESS', 'Order cancellation failed', { 
-      username: req.user.username,
-      orderId: req.params.id,
-      error: err.message 
-    });
+    // console.log('BUSINESS', 'Order cancellation failed', { 
+    //   username: req.user.username,
+    //   orderId: req.params.id,
+    //   error: err.message 
+    // }); // Debug log
     
     // Provide specific error messages for different failure cases
     if (err.message.includes('not found')) {
@@ -678,12 +682,12 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
  * Logs errors and provides generic response to client
  */
 app.use((err, req, res, next) => {
-  console.log('SERVER', 'Unhandled error', { 
-    url: req.url,
-    method: req.method,
-    error: err.message,
-    stack: err.stack 
-  });
+  // console.log('SERVER', 'Unhandled error', { 
+  //   url: req.url,
+  //   method: req.method,
+  //   error: err.message,
+  //   stack: err.stack 
+  // });
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -692,21 +696,25 @@ app.use((err, req, res, next) => {
  * Logs attempted access to non-existent endpoints
  */
 app.use((req, res) => {
-  console.log('HTTP', 'Route not found', { 
-    method: req.method, 
-    url: req.url,
-    ip: req.ip 
-  });
+  // console.log('HTTP', 'Route not found', { 
+  //   method: req.method, 
+  //   url: req.url,
+  //   ip: req.ip 
+  // }); // Debug log
   res.status(404).json({ error: 'Route not found' });
 });
 
 // --- Server startup ---
 
-app.listen(port, () => {
-  console.log('Server started successfully', { 
-    port, 
-    environment: process.env.NODE_ENV || 'development',
-    logLevel: process.env.LOG_LEVEL || 'INFO'
-  });
-  console.log(`API endpoints available at http://localhost:${port}/api/`);
+app.listen(PORT, (err) => {
+  // console.log('Server started successfully', { 
+  //   PORT, 
+  //   environment: process.env.NODE_ENV || 'development',
+  //   logLevel: process.env.LOG_LEVEL || 'INFO'
+  // }); // Debug log
+  // console.log(`API endpoints available at http://localhost:${PORT}/api/`); // Debug log
+  if (err)
+    console.log(err);
+  else 
+    console.log(`Server listening at http://localhost:${PORT}`);
 });
