@@ -1,17 +1,6 @@
-/**
- * Authentication Components
- * 
- * Provides comprehensive authentication interface including:
- * - LoginButton & LogoutButton: Navigation authentication controls
- * - LoginForm: Username/password authentication with validation
- * - TotpForm: Two-factor authentication with TOTP code verification
- * - Modal-based 2FA skip confirmation with feature limitations explanation
- * 
- * Implements responsive design with Bootstrap components and handles
- * various authentication states and error conditions gracefully.
- */
+/* Authentication Components for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* This file contains components for user authentication in the application. */
 
 import { useState } from 'react';
 import { Form, Button, Alert, Col, Row, Card, Container, Modal } from 'react-bootstrap';

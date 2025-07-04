@@ -1,18 +1,6 @@
-/**
- * Navigation Component
- * 
- * Top navigation bar providing:
- * - Restaurant branding and logo
- * - User authentication status display
- * - Login/logout functionality
- * - 2FA upgrade prompts for partially authenticated users
- * - Responsive design with Bootstrap components
- * 
- * Displays different UI elements based on user's authentication state,
- * including special indicators for 2FA status and upgrade options.
- */
+/* Navigation Component for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* This component provides a responsive navigation bar with user authentication controls. */
 
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { Navbar, Nav, Form, Button } from 'react-bootstrap';
@@ -53,8 +41,15 @@ const Navigation = (props) => {
       <Nav className="ms-auto align-items-center">
         {/* User authentication status display */}
         <Navbar.Text className="me-4 fs-5 text-light fw-medium">
-          {props.user && props.user.name && 
-          `Logged in ${props.user.isTotp ? '(2FA)' : ''} as: ${props.user.name}`}
+          {props.user && props.user.name && (
+            <>
+              <i 
+                className={`${props.user.isTotp ? 'bi-shield-fill-check' : 'bi-shield-fill-minus'} me-2`}
+                style={{ color: 'white' }}
+              />
+              {`Logged in ${props.user.isTotp ? '[2FA]' : ''} as: ${props.user.name}`}
+            </>
+          )}
         </Navbar.Text>
         
         {/* 2FA upgrade button for users with partial authentication */}

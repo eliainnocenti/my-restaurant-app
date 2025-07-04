@@ -1,19 +1,6 @@
-/**
- * Layout Components for Restaurant Application
- * 
- * Provides various page layouts and templates including:
- * - GenericLayout: Main wrapper with navigation and error handling
- * - BrowseLayout: Public menu browsing interface
- * - ConfiguratorLayout: Authenticated order creation interface
- * - OrdersLayout: User order management interface
- * - LoginLayout & TotpLayout: Authentication interfaces
- * - NotFoundLayout: 404 error page
- * 
- * Each layout handles specific user flows and authentication requirements,
- * providing consistent UI patterns and responsive design across the application.
- */
+/* Layout Components for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* This file contains various layout components used throughout the restaurant application. */
 
 import { Row, Col, Button, Spinner, Alert, Card, Container } from 'react-bootstrap';
 import { Outlet, Link, useNavigate } from 'react-router';
@@ -43,18 +30,22 @@ function GenericLayout(props) {
 
       <Container fluid className="py-4" style={{ flex: 1 }}>
         {/* Global message display for errors and notifications */}
-        {props.message && (
+        {props.message && props.message.text && (
           <Row>
             <Col>
               <Alert 
                 className='mb-4 border-0 rounded-3 shadow-sm' 
-                onClose={() => props.setMessage('')} 
-                variant='danger' 
+                onClose={() => props.setMessage({ type: '', text: '' })} 
+                variant={props.message.type === 'success' ? 'success' : 'danger'}
                 dismissible
-                style={{ background: 'rgba(220, 53, 69, 0.1)' }}
+                style={{ 
+                  background: props.message.type === 'success' 
+                    ? 'rgba(40, 167, 69, 0.1)' 
+                    : 'rgba(220, 53, 69, 0.1)' 
+                }}
               >
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                {props.message}
+                <i className={`bi ${props.message.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2`}></i>
+                {props.message.text}
               </Alert>
             </Col>
           </Row>
@@ -84,7 +75,7 @@ function GenericLayout(props) {
       <footer className="mt-auto py-3 text-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
         <Container>
           <small className="text-muted d-block mb-1">
-            Full-stack Restaurant Ordering App for the Web Applications Exam @ PoliTo
+            Full-stack restaurant ordering app for the Web Applications Exam @ PoliTo
           </small>
           <small className="text-muted">
             Author: <span className="fw-semibold">Elia Innocenti</span> | 
@@ -123,7 +114,6 @@ function BrowseLayout(props) {
    */
   const getDishIcon = (dishName) => {
     const name = dishName.toLowerCase();
-    // TODO: update icons (?)
     if (name.includes('pizza')) return 'bi-pie-chart'; // bi-dash-circle
     if (name.includes('pasta')) return 'bi-fork-knife';
     if (name.includes('salad')) return 'bi-flower1';
@@ -133,7 +123,7 @@ function BrowseLayout(props) {
   return (
     <Container>
       {/* Page header with title and action buttons */}
-      <Row className="mb-5">
+      <Row className="mb-3">
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>
@@ -181,10 +171,10 @@ function BrowseLayout(props) {
 
       {/* Call-to-action for non-authenticated users */}
       {!loggedIn && (
-        <Row className="mb-5">
+        <Row className="mb-4">
           <Col>
             <Card 
-              className="shadow-lg border-0 rounded-4"
+              className="shadow-lg border-0 rounded-4 mb-4"
               style={{ background: 'rgba(255, 255, 255, 0.9)' }}
             >
               <Card.Body className="p-4">

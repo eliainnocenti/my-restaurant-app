@@ -1,21 +1,6 @@
-/**
- * Restaurant Order Configurator Component
- * 
- * Complex interactive component allowing users to:
- * - Select base dish types and sizes
- * - Choose ingredients with constraint validation
- * - Handle ingredient requirements and incompatibilities
- * - Calculate real-time pricing
- * - Submit orders with validation
- * 
- * Implements sophisticated constraint checking including:
- * - Recursive ingredient requirement resolution
- * - Incompatibility conflict detection
- * - Availability tracking and validation
- * - Size-based ingredient capacity limits
- */
+/* Restaurant Order Configurator Component for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* This component allows users to configure restaurant orders by selecting base dishes, sizes, and ingredients. */
 
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Alert, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';

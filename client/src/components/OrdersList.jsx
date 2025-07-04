@@ -1,18 +1,6 @@
-/**
- * Orders List Component
- * 
- * Displays user's order history with comprehensive details including:
- * - Order status (confirmed/cancelled) with visual indicators
- * - Dish and ingredient breakdown with pricing
- * - Order cancellation functionality with 2FA security requirements
- * - Empty state handling for users with no orders
- * - Modal-based 2FA upgrade flow for enhanced security
- * 
- * Implements conditional order cancellation based on user's authentication level,
- * providing clear upgrade path for users who need 2FA to cancel orders.
- */
+/* Orders List Component for Restaurant Application */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
+/* This component displays a user's order history with detailed information about each order. */
 
 import { Card, Button, Badge, Row, Col, Container, Modal } from 'react-bootstrap';
 import dayjs from 'dayjs';
@@ -166,7 +154,7 @@ const OrdersList = (props) => {
           style={{
             // Dynamic styling based on order status
             background: order.status === 'cancelled' 
-              ? 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)' // Red tint for cancelled
+              ? 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)'  // Red tint for cancelled
               : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', // Normal for confirmed
             opacity: order.status === 'cancelled' ? 0.8 : 1 // Reduced opacity for cancelled
           }}
