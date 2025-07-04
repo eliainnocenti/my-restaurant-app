@@ -6,7 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './App.css';
 
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, useRef } from 'react';
 import { Container } from 'react-bootstrap';
 import { Routes, Route, Navigate, useNavigate } from 'react-router';
 
@@ -24,6 +24,9 @@ import API from './API.js';
 
 function App() {
   const navigate = useNavigate();
+  
+  // Add timeout reference for message cleanup
+  const messageTimeoutRef = useRef(null);
 
   // Authentication state management
   const [loggedIn, setLoggedIn] = useState(false);              // Full authentication status
@@ -40,6 +43,29 @@ function App() {
   // UI state management
   const [message, setMessage] = useState({ type: '', text: '' }); // It support message types
   const [loading, setLoading] = useState(true); // Initial loading state
+
+  /**
+   * Centralized message setter with automatic timeout cleanup
+   * @param {Object} message - Message object with type and text
+   * @param {number} timeout - Timeout in milliseconds (default: 3000)
+   */
+  const setMessageWithTimeout = (message, timeout = 3000) => {
+    // Clear any existing timeout
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+    
+    // Set the new message
+    setMessage(message);
+    
+    // Set new timeout to clear message
+    if (timeout > 0) {
+      messageTimeoutRef.current = setTimeout(() => {
+        setMessage({ type: '', text: '' });
+        messageTimeoutRef.current = null;
+      }, timeout);
+    }
+  };
 
   /**
    * Global error handler for API operations
@@ -59,20 +85,8 @@ function App() {
     else
       msg = 'Unknown Error';
 
-    setMessage({ type: 'error', text: msg });
-
-    // Handle authentication errors by redirecting to login
-    if (msg === 'Not authenticated') {
-      setTimeout(() => {
-        setUser(undefined); 
-        setLoggedIn(false); 
-        setPendingTotpUser(false);
-        navigate('/login');
-      }, 2000);
-    } else {
-      // Clear message after 5 seconds for other errors
-      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-    }
+    // Use centralized message handling for other errors
+    setMessageWithTimeout({ type: 'error', text: msg });
   };
 
   /**
@@ -90,7 +104,7 @@ function App() {
       .catch(() => {
         // User not authenticated - this is expected for new sessions
       });
-  }, [navigate]);
+  }, []);
 
   /**
    * Load restaurant data on app initialization
@@ -195,18 +209,18 @@ function App() {
    */
   const handleUpgradeTo2FA = () => {
     const currentUsername = user?.username; // Capture current username
-    console.log('Upgrading to 2FA for user:', currentUsername); // Debug log
+    // console.log('Upgrading to 2FA for user:', currentUsername); // Debug log
     
     if (!currentUsername) {
       console.error('No username found for 2FA upgrade');
-      setMessage('Error: Unable to determine username for 2FA upgrade');
+      setMessageWithTimeout({ type: 'error', text: 'Error: Unable to determine username for 2FA upgrade' });
       return;
     }
     
     // Don't log out - just redirect to login with 2FA requirement
     // User remains logged in but needs to complete 2FA for full privileges
     const loginUrl = `/login?require2fa=true&username=${encodeURIComponent(currentUsername)}`;
-    console.log('Redirecting to:', loginUrl); // Debug log
+    // console.log('Redirecting to:', loginUrl); // Debug log
     navigate(loginUrl);
   };
 
@@ -244,13 +258,13 @@ function App() {
       })
       .then(o => {
         setOrders(o);
-        setMessage({ type: 'success', text: 'Order created successfully!' });
+        setMessageWithTimeout({ type: 'success', text: 'Order created successfully!' });
         navigate('/orders'); // Redirect to orders page
       })
       .catch(err => { 
         // Handle constraint violations - keep user on configurator
         if (err.constraintViolation) {
-          console.log('Order validation failed:', err);
+          // console.log('Order validation failed:', err); // Debug log
           
           // Refresh ingredients to show current availability
           API.getIngredients()
@@ -281,10 +295,19 @@ function App() {
       })
       .then(o => {
         setOrders(o);
-        setMessage({ type: 'success', text: 'Order cancelled successfully!' });
+        setMessageWithTimeout({ type: 'success', text: 'Order cancelled successfully!' });
       })
       .catch(handleErrors);
   };
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Container fluid>
@@ -359,6 +382,7 @@ function App() {
             setPendingTotpUser={setPendingTotpUser}
             totpSuccessful={handleTotpSuccess}
             skipTotpSuccessful={handleSkipTotp}
+            handleErrors={handleErrors}
           />
         } />
       </Routes>
@@ -390,12 +414,13 @@ function LoginWithTotp(props) {
           props.setPendingTotpUser(null);
           props.skipTotpSuccessful();
         }}
+        handleErrors={props.handleErrors}
       />
     );
   } 
   // Show standard username/password login form
   else {
-    return <LoginLayout login={props.login} user={props.user} />;
+    return <LoginLayout login={props.login} user={props.user} handleErrors={props.handleErrors} />;
   }
 }
 

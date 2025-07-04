@@ -68,10 +68,10 @@ function LoginForm(props) {
   const effectiveUsername = require2fa && props.user?.username ? props.user.username : prefilledUsername;
   
   // Debug logging
-  console.log('LoginForm - require2fa:', require2fa);
-  console.log('LoginForm - prefilledUsername:', prefilledUsername);
-  console.log('LoginForm - user:', props.user);
-  console.log('LoginForm - effectiveUsername:', effectiveUsername);
+  // console.log('LoginForm - require2fa:', require2fa);
+  // console.log('LoginForm - prefilledUsername:', prefilledUsername);
+  // console.log('LoginForm - user:', props.user);
+  // console.log('LoginForm - effectiveUsername:', effectiveUsername);
   
   // Form state management
   const [username, setUsername] = useState(effectiveUsername);
@@ -255,7 +255,6 @@ function TotpForm(props) {
   const [totpCode, setTotpCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
-  const navigate = useNavigate();
 
   /**
    * Handle TOTP verification API call

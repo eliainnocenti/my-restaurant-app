@@ -3,7 +3,7 @@
 /* This component allows users to configure restaurant orders by selecting base dishes, sizes, and ingredients. */
 
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, Alert, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Row, Col, Card, Button, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 /**
  * Main configurator component for creating restaurant orders
@@ -22,7 +22,6 @@ const RestaurantConfigurator = (props) => {
   const [selectedBaseDish, setSelectedBaseDish] = useState(null);     // Currently selected dish type
   const [selectedSize, setSelectedSize] = useState(null);             // Currently selected size
   const [selectedIngredients, setSelectedIngredients] = useState([]); // Array of selected ingredient IDs
-  const [errorMessage, setErrorMessage] = useState('');               // Component-level error messages
   const [totalPrice, setTotalPrice] = useState(0);                    // Calculated total order price
 
   /**
@@ -43,12 +42,10 @@ const RestaurantConfigurator = (props) => {
 
   /**
    * Handle base dish selection
-   * Clears any existing error messages when valid selection is made
    * @param {Object} baseDish - Selected base dish object
    */
   const handleBaseDishSelect = (baseDish) => {
     setSelectedBaseDish(baseDish);
-    setErrorMessage(''); // Clear error when making valid selection
   };
 
   /**
@@ -59,12 +56,11 @@ const RestaurantConfigurator = (props) => {
   const handleSizeSelect = (size) => {
     // If changing to a smaller size, check if current ingredients fit
     if (selectedIngredients.length > size.maxIngredients) {
-      setErrorMessage(`${size.label} dishes can have at most ${size.maxIngredients} ingredients. Please remove some ingredients first.`);
+      handleErrors(`${size.label} dishes can have at most ${size.maxIngredients} ingredients. Please remove some ingredients first.`);
       return;
     }
     
     setSelectedSize(size);
-    setErrorMessage('');
   };
 
   /**
@@ -144,7 +140,7 @@ const RestaurantConfigurator = (props) => {
         .filter(ing => ing && ing.requires.includes(ingredient.name));
       
       if (dependentIngredients.length > 0) {
-        setErrorMessage(`Cannot remove ${ingredient.name} as it is required by: ${dependentIngredients.map(ing => ing.name).join(', ')}`);
+        handleErrors(`Cannot remove ${ingredient.name} as it is required by: ${dependentIngredients.map(ing => ing.name).join(', ')}`);
         return;
       }
       
@@ -155,19 +151,19 @@ const RestaurantConfigurator = (props) => {
       
       // Check if size is selected first
       if (!selectedSize) {
-        setErrorMessage('Please select a size first');
+        handleErrors('Please select a size first');
         return;
       }
       
       // Check capacity constraint
       if (selectedIngredients.length >= selectedSize.maxIngredients) {
-        setErrorMessage(`${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients`);
+        handleErrors(`${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients`);
         return;
       }
       
       // Check availability constraint
       if (ingredient.availability !== null && ingredient.availability <= 0) {
-        setErrorMessage(`${ingredient.name} is not available`);
+        handleErrors(`${ingredient.name} is not available`);
         return;
       }
       
@@ -181,7 +177,7 @@ const RestaurantConfigurator = (props) => {
       );
       
       if (incompatibleSelected.length > 0) {
-        setErrorMessage(`${ingredient.name} is incompatible with: ${incompatibleSelected.join(', ')}`);
+        handleErrors(`${ingredient.name} is incompatible with: ${incompatibleSelected.join(', ')}`);
         return;
       }
       
@@ -189,14 +185,12 @@ const RestaurantConfigurator = (props) => {
       const result = addRequiredIngredientsRecursively(ingredientId, selectedIngredients, selectedSize.maxIngredients);
       
       if (!result.success) {
-        setErrorMessage(result.error);
+        handleErrors(result.error);
         return;
       }
       
       setSelectedIngredients(result.selection);
     }
-    
-    setErrorMessage(''); // Clear error on successful operation
   };
 
   /**
@@ -206,12 +200,12 @@ const RestaurantConfigurator = (props) => {
   const handleSubmitOrder = async () => {
     // Validate required selections
     if (!selectedBaseDish) {
-      setErrorMessage('Please select a dish type');
+      handleErrors('Please select a dish type');
       return;
     }
     
     if (!selectedSize) {
-      setErrorMessage('Please select a size');
+      handleErrors('Please select a size');
       return;
     }
 
@@ -224,14 +218,9 @@ const RestaurantConfigurator = (props) => {
       setSelectedBaseDish(null);
       setSelectedSize(null);
       setSelectedIngredients([]);
-      setErrorMessage('');
     } catch (err) {
-      // Handle order creation errors
-      if (err.error) {
-        setErrorMessage(err.error);
-      } else {
-        handleErrors(err); // Delegate to global error handler
-      }
+      // Handle order creation errors with global handler
+      handleErrors(err);
     }
   };
 
@@ -322,20 +311,6 @@ const RestaurantConfigurator = (props) => {
 
   return (
     <>
-      {/* Error message display */}
-      {errorMessage && (
-        <Alert 
-          variant="danger" 
-          onClose={() => setErrorMessage('')} 
-          dismissible 
-          className="mb-4 border-0 rounded-3 shadow-sm"
-          style={{ background: 'rgba(220, 53, 69, 0.1)' }}
-        >
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          {errorMessage}
-        </Alert>
-      )}
-      
       <Row>
         {/* Base Dish Selection Column */}
         <Col lg={2} className="mb-4">
