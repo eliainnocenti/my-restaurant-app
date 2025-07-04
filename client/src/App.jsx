@@ -1,19 +1,6 @@
-/**
- * Main Application Component
- * 
- * Central component managing:
- * - Application-wide state (authentication, menu data, orders)
- * - Route configuration and navigation
- * - Authentication flow including 2FA handling
- * - Global error handling and message display
- * - API integration for all restaurant operations
- * 
- * Implements complex authentication flow with partial authentication support
- * for users who skip 2FA, providing graceful feature degradation.
- */
+/* Main Application Component for Restaurant Ordering System */
 
-// TODO: review completely this file: remove unused code, simplify where possible, ensure best practices and add comments
-// FIXME: not all the messages are error messages. at the moment, all the messages are displayed in a red box with a triangle icon.
+/* This component serves as the entry point for the application, managing authentication, routing, and global state. */
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -51,7 +38,7 @@ function App() {
   const [orders, setOrders] = useState([]);           // User's orders
 
   // UI state management
-  const [message, setMessage] = useState('');   // Global message display
+  const [message, setMessage] = useState({ type: '', text: '' }); // It support message types
   const [loading, setLoading] = useState(true); // Initial loading state
 
   /**
@@ -72,7 +59,7 @@ function App() {
     else
       msg = 'Unknown Error';
 
-    setMessage(msg);
+    setMessage({ type: 'error', text: msg });
 
     // Handle authentication errors by redirecting to login
     if (msg === 'Not authenticated') {
@@ -84,7 +71,7 @@ function App() {
       }, 2000);
     } else {
       // Clear message after 5 seconds for other errors
-      setTimeout(() => setMessage(''), 5000);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
     }
   };
 
@@ -257,7 +244,7 @@ function App() {
       })
       .then(o => {
         setOrders(o);
-        setMessage('Order created successfully!');
+        setMessage({ type: 'success', text: 'Order created successfully!' });
         navigate('/orders'); // Redirect to orders page
       })
       .catch(err => { 
@@ -294,7 +281,7 @@ function App() {
       })
       .then(o => {
         setOrders(o);
-        setMessage('Order cancelled successfully!');
+        setMessage({ type: 'success', text: 'Order cancelled successfully!' });
       })
       .catch(handleErrors);
   };
