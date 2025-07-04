@@ -23,6 +23,7 @@ const OrdersList = (props) => {
   // Modal state for 2FA upgrade flow
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingCancelOrderId, setPendingCancelOrderId] = useState(null);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false); // Confirmation modal state
 
   /**
    * Handle order cancellation with 2FA security check
@@ -37,10 +38,21 @@ const OrdersList = (props) => {
       return;
     }
     
-    // User has 2FA - proceed with cancellation confirmation
-    if (window.confirm('Are you sure you want to cancel this order?')) {
-      cancelOrder(orderId);
+    // User has 2FA - show styled confirmation modal instead of browser popup
+    setPendingCancelOrderId(orderId);
+    setShowCancelConfirmation(true);
+  };
+
+  /**
+   * Handle confirmed order cancellation
+   * Called when user confirms cancellation in the modal
+   */
+  const handleConfirmCancel = () => {
+    if (pendingCancelOrderId) {
+      cancelOrder(pendingCancelOrderId);
+      setPendingCancelOrderId(null);
     }
+    setShowCancelConfirmation(false);
   };
 
   /**
@@ -99,6 +111,44 @@ const OrdersList = (props) => {
 
   return (
     <div>
+      {/* Cancel Order Confirmation Modal */}
+      <Modal show={showCancelConfirmation} onHide={() => setShowCancelConfirmation(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="w-100 text-center">
+            <i className="bi bi-exclamation-triangle" style={{ color: '#e74c3c', fontSize: '2rem' }}></i>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center p-4">
+          <h4 className="mb-3" style={{ color: '#2c3e50' }}>Cancel Order #{pendingCancelOrderId}?</h4>
+          <p className="text-muted mb-4">
+            Are you sure you want to cancel this order?<br />
+            This action cannot be undone.
+          </p>
+          <div className="d-grid gap-2">
+            {/* Confirm cancellation button */}
+            <Button 
+              onClick={handleConfirmCancel}
+              className="py-2 fw-semibold rounded-3"
+              style={{
+                background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                border: 'none'
+              }}
+            >
+              <i className="bi bi-x-circle me-2"></i>
+              Yes, Cancel Order
+            </Button>
+            {/* Keep order button */}
+            <Button 
+              variant="outline-secondary" 
+              onClick={() => setShowCancelConfirmation(false)}
+              className="py-2 fw-semibold rounded-3"
+            >
+              Keep Order
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
       {/* 2FA Upgrade Modal - shown when user tries to cancel without 2FA */}
       <Modal show={showUpgradeModal} onHide={() => setShowUpgradeModal(false)} centered>
         <Modal.Header closeButton className="border-0 pb-0">
