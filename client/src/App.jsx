@@ -13,7 +13,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import { 
   GenericLayout, 
   NotFoundLayout, 
-  BrowseLayout, 
+  MenuBrowser, 
   ConfiguratorLayout, 
   OrdersLayout,
   LoginLayout, 
@@ -326,7 +326,7 @@ function App() {
         }>
           {/* Default route - browse dishes and ingredients (public) */}
           <Route index element={
-            <BrowseLayout 
+            <MenuBrowser 
               dishes={dishes}
               baseDishes={baseDishes}
               sizes={sizes}
