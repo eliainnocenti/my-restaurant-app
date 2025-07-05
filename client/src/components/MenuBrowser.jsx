@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router';
  * @returns {JSX.Element} Public menu browsing interface
  */
 function MenuBrowser(props) {
-  const { dishes, baseDishes, sizes, ingredients, loggedIn } = props;
+  const { baseDishes, sizes, ingredients, loggedIn } = props;
   const navigate = useNavigate();
 
   /**

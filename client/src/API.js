@@ -114,15 +114,6 @@ const skipTotp = async () =>
 // --- Restaurant data API calls ---
 
 /**
- * Get all available dishes (combinations of base dishes and sizes)
- * Returns all possible dish-size combinations with pricing
- * Public endpoint - no authentication required
- * @returns {Promise<Array>} Array of dish objects with combined IDs
- */
-const getDishes = async () =>
-  getJson(fetch(SERVER_URL + 'dishes', { credentials: 'include' }));
-
-/**
  * Get all base dish types (pizza, pasta, salad, etc.)
  * Returns fundamental dish categories for menu organization
  * Public endpoint - no authentication required
@@ -207,7 +198,6 @@ const API = {
   skipTotp,
   
   // Restaurant data methods
-  getDishes,
   getBaseDishes,
   getSizes,
   getIngredients,

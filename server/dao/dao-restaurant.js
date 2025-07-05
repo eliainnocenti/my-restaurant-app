@@ -5,85 +5,6 @@
 const db = require('../db');
 
 /**
- * Get all dishes (combinations of base dishes and sizes)
- * Creates a Cartesian product of base dishes and sizes to show all possible combinations
- * Uses CROSS JOIN to generate all dish-size variants with combined IDs for easier handling
- * @returns {Promise<Array>} Array of dish objects with combined IDs (baseDishId_sizeId)
- */
-exports.getAllDishes = () => {
-  return new Promise((resolve, reject) => {
-    // CROSS JOIN creates all possible combinations of base dishes and sizes
-    // Combined ID format allows frontend to easily reference specific dish-size pairs
-    const sql = `
-      SELECT 
-        bd.id || '_' || s.id as id,
-        bd.name,
-        s.label as size,
-        s.base_price as price,
-        s.max_ingredients as maxIngredients,
-        bd.id as baseDishId,
-        s.id as sizeId
-      FROM base_dishes bd
-      CROSS JOIN sizes s
-      ORDER BY bd.name, s.base_price
-    `;
-    db.all(sql, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows.map(row => ({
-        id: row.id,                         // Combined ID for easy reference
-        name: row.name,
-        size: row.size,
-        price: row.price,
-        maxIngredients: row.maxIngredients,
-        baseDishId: row.baseDishId,         // Original base dish ID
-        sizeId: row.sizeId                  // Original size ID
-      })));
-    });
-  });
-};
-
-/**
- * Get all ingredients with their constraint relationships
- * Includes requirements and incompatibilities for UI constraint handling
- * Uses complex JOINs to aggregate constraint data into arrays
- * @returns {Promise<Array>} Array of ingredient objects with relationships
- */
-exports.getAllIngredients = () => {
-  return new Promise((resolve, reject) => {
-    // Complex query joins ingredient constraints and aggregates them
-    // GROUP_CONCAT creates comma-separated lists of related ingredient names
-    const sql = `
-      SELECT 
-        i.id,
-        i.name,
-        i.price,
-        i.availability,
-        GROUP_CONCAT(DISTINCT req.name) as requires,
-        GROUP_CONCAT(DISTINCT inc.name) as incompatible
-      FROM ingredients i
-      LEFT JOIN ingredient_requirements ir ON i.id = ir.ingredient_id
-      LEFT JOIN ingredients req ON ir.required_id = req.id
-      LEFT JOIN ingredient_incompatibilities ii ON i.id = ii.ingredient_id
-      LEFT JOIN ingredients inc ON ii.incompatible_with_id = inc.id
-      GROUP BY i.id, i.name, i.price, i.availability
-      ORDER BY i.name
-    `;
-    db.all(sql, [], (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        price: row.price,
-        availability: row.availability,
-        // Convert comma-separated strings to arrays for easier frontend handling
-        requires: row.requires ? row.requires.split(',') : [],
-        incompatible: row.incompatible ? row.incompatible.split(',') : []
-      })));
-    });
-  });
-};
-
-/**
  * Get all base dishes (pizza, pasta, salad, etc.)
  * Simple lookup for menu display and order configuration
  * @returns {Promise<Array>} Array of base dish objects
@@ -159,6 +80,47 @@ exports.getDishById = (combinedId) => {
         baseDishId: row.baseDishId,
         sizeId: row.sizeId
       });
+    });
+  });
+};
+
+/**
+ * Get all ingredients with their constraint relationships
+ * Includes requirements and incompatibilities for UI constraint handling
+ * Uses complex JOINs to aggregate constraint data into arrays
+ * @returns {Promise<Array>} Array of ingredient objects with relationships
+ */
+exports.getAllIngredients = () => {
+  return new Promise((resolve, reject) => {
+    // Complex query joins ingredient constraints and aggregates them
+    // GROUP_CONCAT creates comma-separated lists of related ingredient names
+    const sql = `
+      SELECT 
+        i.id,
+        i.name,
+        i.price,
+        i.availability,
+        GROUP_CONCAT(DISTINCT req.name) as requires,
+        GROUP_CONCAT(DISTINCT inc.name) as incompatible
+      FROM ingredients i
+      LEFT JOIN ingredient_requirements ir ON i.id = ir.ingredient_id
+      LEFT JOIN ingredients req ON ir.required_id = req.id
+      LEFT JOIN ingredient_incompatibilities ii ON i.id = ii.ingredient_id
+      LEFT JOIN ingredients inc ON ii.incompatible_with_id = inc.id
+      GROUP BY i.id, i.name, i.price, i.availability
+      ORDER BY i.name
+    `;
+    db.all(sql, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        price: row.price,
+        availability: row.availability,
+        // Convert comma-separated strings to arrays for easier frontend handling
+        requires: row.requires ? row.requires.split(',') : [],
+        incompatible: row.incompatible ? row.incompatible.split(',') : []
+      })));
     });
   });
 };

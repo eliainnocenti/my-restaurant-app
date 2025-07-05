@@ -168,40 +168,6 @@ function clientUserInfo(req) {
 // PUBLIC ROUTES (no authentication required)
 
 /**
- * GET /api/dishes - Get all available dish combinations
- * Returns all possible combinations of base dishes and sizes
- * Public endpoint for menu browsing
- */
-app.get('/api/dishes', async (req, res) => {
-  try {
-    // console.log('API', 'Fetching all dishes'); // Debug log
-    const dishes = await restaurantDao.getAllDishes();
-    // console.log('SELECT', 'dishes', true, { count: dishes.length }); // Debug log
-    res.json(dishes);
-  } catch (err) {
-    // console.log('SELECT', 'dishes', false, { error: err.message }); // Debug log
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-/**
- * GET /api/ingredients - Get all ingredients with constraints
- * Returns ingredients with availability, requirements, and incompatibilities
- * Public endpoint for menu browsing and constraint checking
- */
-app.get('/api/ingredients', async (req, res) => {
-  try {
-    // console.log('API', 'Fetching all ingredients'); // Debug log
-    const ingredients = await restaurantDao.getAllIngredients();
-    // console.log('SELECT', 'ingredients', true, { count: ingredients.length }); // Debug log
-    res.json(ingredients);
-  } catch (err) {
-    // console.log('SELECT', 'ingredients', false, { error: err.message }); // Debug log
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-/**
  * GET /api/base-dishes - Get all base dish types
  * Public endpoint for menu category browsing
  */
@@ -225,6 +191,23 @@ app.get('/api/sizes', (req, res) => {
       console.error(err);
       res.status(500).json({ error: 'Database error while retrieving sizes' });
     });
+});
+
+/**
+ * GET /api/ingredients - Get all ingredients with constraints
+ * Returns ingredients with availability, requirements, and incompatibilities
+ * Public endpoint for menu browsing and constraint checking
+ */
+app.get('/api/ingredients', async (req, res) => {
+  try {
+    // console.log('API', 'Fetching all ingredients'); // Debug log
+    const ingredients = await restaurantDao.getAllIngredients();
+    // console.log('SELECT', 'ingredients', true, { count: ingredients.length }); // Debug log
+    res.json(ingredients);
+  } catch (err) {
+    // console.log('SELECT', 'ingredients', false, { error: err.message }); // Debug log
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // AUTHENTICATION ROUTES
@@ -358,40 +341,25 @@ app.post('/api/orders', isLoggedIn, [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // console.log('API', 'Order creation validation failed', { 
-    //   username: req.user.username,
-    //   errors: errors.array() 
-    // }); // Debug log
+    // console.log('API', 'Order creation validation failed', { username: req.user.username, errors: errors.array() }); // Debug log
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { dishId, ingredientIds } = req.body;
-    // console.log('BUSINESS', 'Order creation started', { 
-    //   username: req.user.username, 
-    //   dishId, 
-    //   ingredientCount: ingredientIds.length 
-    // }); // Debug log
+    // console.log('BUSINESS', 'Order creation started', { username: req.user.username, dishId, ingredientCount: ingredientIds.length }); // Debug log
 
     // Parse combined dish ID to get base dish and size
     const [baseDishId, sizeId] = dishId.split('_');
     if (!baseDishId || !sizeId) {
-      // console.log('ORDER_CREATE', false, { 
-      //   username: req.user.username, 
-      //   reason: 'Invalid dish ID format',
-      //   dishId 
-      // }); // Debug log
+      // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Invalid dish ID format',dishId }); // Debug log
       return res.status(400).json({ error: 'Invalid dish ID format' });
     }
 
     // Validate dish exists using combined ID
     const dish = await restaurantDao.getDishById(dishId);
     if (!dish) {
-      // console.log('ORDER_CREATE', false, { 
-      //   username: req.user.username, 
-      //   reason: 'Invalid dish ID',
-      //   dishId 
-      // }); // Debug log
+      // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Invalid dish ID',dishId }); // Debug log
       return res.status(400).json({ error: 'Invalid dish' });
     }
 
@@ -399,11 +367,7 @@ app.post('/api/orders', isLoggedIn, [
     const sizes = await restaurantDao.getSizes();
     const selectedSize = sizes.find(s => s.id.toString() === sizeId);
     if (!selectedSize) {
-      // console.log('ORDER_CREATE', false, { 
-      //   username: req.user.username, 
-      //   reason: 'Invalid size ID',
-      //   sizeId 
-      // }); // Debug log
+      // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Invalid size ID',sizeId }); // Debug log
       return res.status(400).json({ error: 'Invalid size' });
     }
 
@@ -411,12 +375,7 @@ app.post('/api/orders', isLoggedIn, [
 
     // 1. Check ingredient count constraint
     if (ingredientIds.length > selectedSize.maxIngredients) {
-      // console.log('ORDER_CREATE', false, { 
-      //   username: req.user.username, 
-      //   reason: 'Too many ingredients',
-      //   count: ingredientIds.length,
-      //   max: selectedSize.maxIngredients
-      // }); // Debug log
+      // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Too many ingredients',count: ingredientIds.length,max: selectedSize.maxIngredients }); // Debug log
       return res.status(400).json({ 
         error: `${selectedSize.label} dishes can have at most ${selectedSize.maxIngredients} ingredients. You selected ${ingredientIds.length}.`,
         constraintViolation: 'ingredient_count',
@@ -434,11 +393,7 @@ app.post('/api/orders', isLoggedIn, [
     for (const ingrId of ingredientIds) {
       const ingredient = allIngredients.find(ing => ing.id === ingrId);
       if (!ingredient) {
-        // console.log('ORDER_CREATE', false, { 
-        //   username: req.user.username, 
-        //   reason: 'Invalid ingredient ID',
-        //   ingredientId: ingrId 
-        // }); // Debug log
+        // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Invalid ingredient ID',ingredientId: ingrId }); // Debug log
         return res.status(400).json({ 
           error: `Invalid ingredient: ${ingrId}`,
           constraintViolation: 'invalid_ingredient'
@@ -449,12 +404,7 @@ app.post('/api/orders', isLoggedIn, [
       // This check is probably reduntant beacuse we will check it again before creating the order
       // but it is useful as an early exit point to avoid unnecessary processing if an ingredient is not available
       if (ingredient.availability !== null && ingredient.availability <= 0) {
-        // console.log('ORDER_CREATE', false, { 
-        //   username: req.user.username, 
-        //   reason: 'Ingredient not available',
-        //   ingredient: ingredient.name,
-        //   availability: ingredient.availability
-        // }); // Debug log
+        // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Ingredient not available',ingredient: ingredient.name,availability: ingredient.availability }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} is not available (current availability: ${ingredient.availability})`,
           constraintViolation: 'availability',
@@ -475,12 +425,7 @@ app.post('/api/orders', isLoggedIn, [
       );
       
       if (incompatibleSelected.length > 0) {
-        // console.log('ORDER_CREATE', false, { 
-        //   username: req.user.username, 
-        //   reason: 'Incompatible ingredients',
-        //   ingredient: ingredient.name,
-        //   incompatibleWith: incompatibleSelected
-        // }); // Debug log
+        // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Incompatible ingredients',ingredient: ingredient.name,incompatibleWith: incompatibleSelected }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} is incompatible with: ${incompatibleSelected.join(', ')}`,
           constraintViolation: 'incompatibility',
@@ -526,12 +471,7 @@ app.post('/api/orders', isLoggedIn, [
     for (const ingredient of selectedIngredients) {
       const reqResult = validateRequirements(ingredient);
       if (!reqResult.valid) {
-        // console.log('ORDER_CREATE', false, { 
-        //   username: req.user.username, 
-        //   reason: 'Missing required ingredients',
-        //   ingredient: ingredient.name,
-        //   missing: reqResult.missing
-        // }); // Debug log
+        // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Missing required ingredients', ingredient: ingredient.name, missing: reqResult.missing }); // Debug log
         return res.status(400).json({ 
           error: `${ingredient.name} requires: ${reqResult.missing.join(', ')}`,
           constraintViolation: 'requirements',
@@ -555,11 +495,7 @@ app.post('/api/orders', isLoggedIn, [
     }
 
     if (unavailableIngredients.length > 0) {
-      // console.log('ORDER_CREATE', false, { 
-      //   username: req.user.username, 
-      //   reason: 'Ingredients became unavailable',
-      //   unavailable: unavailableIngredients
-      // }); // Debug log
+      // console.log('ORDER_CREATE', false, { username: req.user.username, reason: 'Ingredients became unavailable', unavailable: unavailableIngredients }); // Debug log
       return res.status(400).json({ 
         error: `The following ingredients became unavailable: ${unavailableIngredients.join(', ')}. Please refresh and try again.`,
         constraintViolation: 'availability_changed',
@@ -570,14 +506,7 @@ app.post('/api/orders', isLoggedIn, [
     // ALL VALIDATIONS PASSED - Create the order
     const order = await restaurantDao.createOrder(req.user.id, dishId, ingredientIds);
     
-    // console.log('ORDER_CREATE', true, {
-    //   username: req.user.username,
-    //   orderId: order.id,
-    //   dishName: dish.name,
-    //   dishSize: dish.size,
-    //   ingredients: selectedIngredients.map(ing => ing.name),
-    //   totalPrice: totalPrice
-    // }); // Debug log
+    // console.log('ORDER_CREATE', true, { username: req.user.username, orderId: order.id, dishName: dish.name, dishSize: dish.size, ingredients: selectedIngredients.map(ing => ing.name), totalPrice: totalPrice }); // Debug log
 
     res.status(201).json({
       id: order.id,
@@ -587,11 +516,7 @@ app.post('/api/orders', isLoggedIn, [
       message: 'Order created successfully'
     });
   } catch (err) {
-    // console.log('BUSINESS', 'Order creation failed', { 
-    //   username: req.user.username,
-    //   error: err.message,
-    //   stack: err.stack 
-    // }); // Debug log
+    // console.log('BUSINESS', 'Order creation failed', { username: req.user.username, error: err.message, stack: err.stack }); // Debug log
     
     // Handle specific database constraint violations
     if (err.message.includes('availability')) {
@@ -613,16 +538,10 @@ app.get('/api/orders', isLoggedIn, async (req, res) => {
   try {
     // console.log('API', 'Fetching user orders', { username: req.user.username }); // Debug log
     const orders = await restaurantDao.getUserOrders(req.user.id);
-    // console.log('SELECT', 'orders', true, { 
-    //   username: req.user.username,
-    //   orderCount: orders.length 
-    // }); // Debug log
+    // console.log('SELECT', 'orders', true, {  username: req.user.username, orderCount: orders.length }); // Debug log
     res.json(orders);
   } catch (err) {
-    // console.log('SELECT', 'orders', false, { 
-    //   username: req.user.username,
-    //   error: err.message 
-    // }); // Debug log
+    // console.log('SELECT', 'orders', false, {  username: req.user.username, error: err.message  }); // Debug log
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -637,34 +556,21 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // console.log('API', 'Order cancellation validation failed', { 
-    //   username: req.user.username,
-    //   errors: errors.array() 
-    // }); // Debug log
+    // console.log('API', 'Order cancellation validation failed', { username: req.user.username, errors: errors.array() }); // Debug log
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const orderId = parseInt(req.params.id, 10);
-    // console.log('BUSINESS', 'Order cancellation started', { 
-    //   username: req.user.username, 
-    //   orderId 
-    // }); // Debug log
+    // console.log('BUSINESS', 'Order cancellation started', { username: req.user.username, orderId }); // Debug log
     
     // Cancel order and restore ingredient availability
     await restaurantDao.cancelOrder(orderId, req.user.id);
     
-    // console.log('ORDER_CANCEL', true, { 
-    //   username: req.user.username, 
-    //   orderId 
-    // }); // Debug log
+    // console.log('ORDER_CANCEL', true, { username: req.user.username, orderId }); // Debug log
     res.json({ message: 'Order cancelled successfully' });
   } catch (err) {
-    // console.log('BUSINESS', 'Order cancellation failed', { 
-    //   username: req.user.username,
-    //   orderId: req.params.id,
-    //   error: err.message 
-    // }); // Debug log
+    // console.log('BUSINESS', 'Order cancellation failed', { username: req.user.username, orderId: req.params.id, error: err.message }); // Debug log
     
     // Provide specific error messages for different failure cases
     if (err.message.includes('not found')) {
@@ -682,12 +588,7 @@ app.delete('/api/orders/:id', isLoggedIn, isTotp, [
  * Logs errors and provides generic response to client
  */
 app.use((err, req, res, next) => {
-  // console.log('SERVER', 'Unhandled error', { 
-  //   url: req.url,
-  //   method: req.method,
-  //   error: err.message,
-  //   stack: err.stack 
-  // });
+  // console.log('SERVER', 'Unhandled error', { url: req.url, method: req.method, error: err.message, stack: err.stack });
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -696,22 +597,14 @@ app.use((err, req, res, next) => {
  * Logs attempted access to non-existent endpoints
  */
 app.use((req, res) => {
-  // console.log('HTTP', 'Route not found', { 
-  //   method: req.method, 
-  //   url: req.url,
-  //   ip: req.ip 
-  // }); // Debug log
+  // console.log('HTTP', 'Route not found', { method: req.method, url: req.url, ip: req.ip }); // Debug log
   res.status(404).json({ error: 'Route not found' });
 });
 
 // --- Server startup ---
 
 app.listen(PORT, (err) => {
-  // console.log('Server started successfully', { 
-  //   PORT, 
-  //   environment: process.env.NODE_ENV || 'development',
-  //   logLevel: process.env.LOG_LEVEL || 'INFO'
-  // }); // Debug log
+  // console.log('Server started successfully', { PORT, environment: process.env.NODE_ENV || 'development', logLevel: process.env.LOG_LEVEL || 'INFO' }); // Debug log
   // console.log(`API endpoints available at http://localhost:${PORT}/api/`); // Debug log
   if (err)
     console.log(err);

@@ -133,7 +133,6 @@ function ConfiguratorLayout(props) {
 
       {/* Order configurator component */}
       <RestaurantConfigurator 
-        dishes={props.dishes}
         baseDishes={props.baseDishes}
         sizes={props.sizes}
         ingredients={props.ingredients}
@@ -198,8 +197,6 @@ function OrdersLayout(props) {
       {/* Orders list component */}
       <OrdersList 
         orders={props.orders}
-        dishes={props.dishes}
-        ingredients={props.ingredients}
         cancelOrder={props.cancelOrder}
         canCancel={props.canCancel}
         upgradeTo2FA={props.upgradeTo2FA}

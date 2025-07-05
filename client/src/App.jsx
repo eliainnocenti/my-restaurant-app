@@ -34,7 +34,6 @@ function App() {
   const [pendingTotpUser, setPendingTotpUser] = useState(null); // User awaiting 2FA
 
   // Application data state - cached for performance
-  const [dishes, setDishes] = useState([]);           // All dish combinations
   const [baseDishes, setBaseDishes] = useState([]);   // Base dish types
   const [sizes, setSizes] = useState([]);             // Available sizes
   const [ingredients, setIngredients] = useState([]); // Ingredients with constraints
@@ -113,11 +112,7 @@ function App() {
   useEffect(() => {
     setLoading(true);
     // Chain API calls to load all necessary data
-    API.getDishes()
-      .then(ds => {
-        setDishes(ds);
-        return API.getBaseDishes();
-      })
+    API.getBaseDishes()
       .then(bd => {
         setBaseDishes(bd);
         return API.getSizes();
@@ -327,7 +322,6 @@ function App() {
           {/* Default route - browse dishes and ingredients (public) */}
           <Route index element={
             <MenuBrowser 
-              dishes={dishes}
               baseDishes={baseDishes}
               sizes={sizes}
               ingredients={ingredients}
@@ -339,7 +333,6 @@ function App() {
           <Route path="configure" element={
             loggedIn ? (
               <ConfiguratorLayout 
-                dishes={dishes}
                 baseDishes={baseDishes}
                 sizes={sizes}
                 ingredients={ingredients}
@@ -356,8 +349,6 @@ function App() {
             loggedIn ? (
               <OrdersLayout 
                 orders={orders}
-                dishes={dishes}
-                ingredients={ingredients}
                 cancelOrder={handleCancelOrder}
                 canCancel={user?.isTotp} // Only allow cancellation with 2FA
                 upgradeTo2FA={handleUpgradeTo2FA}
