@@ -1,9 +1,6 @@
-<!-- [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/xnU44QZi) -->
 # Exam #2: "Restaurant"
 
 ![polito_logo](resources/logo_polito.jpg)
-
-## Student: s345388 INNOCENTI ELIA 
 
 Full-stack web application for restaurant ordering with user authentication, 2FA support, and ingredient constraint management.
 
@@ -91,17 +88,6 @@ The backend server provides a RESTful API for restaurant management with authent
 }
 ```
 **Error Responses:**
-- **400 (Validation Error):**
-```json
-{
-  "errors": [
-    {
-      "msg": "Invalid value",
-      "path": "code"
-    }
-  ]
-}
-```
 - **401 (Invalid Code):**
 ```json
 {
@@ -295,28 +281,42 @@ The backend server provides a RESTful API for restaurant management with authent
 ```json
 [
   {
-    "id": 1,
-    "userId": 1,
-    "dishName": "Pizza",
-    "dishSize": "Small",
-    "dishPrice": 5.0,
-    "ingredients": ["mozzarella", "tomatoes", "olives"],
-    "ingredientPrices": [1.0, 0.5, 0.7],
-    "totalPrice": 7.2,
-    "orderDate": "2024-01-20T12:30:00.000Z",
-    "status": "confirmed"
-  },
-  {
     "id": 2,
     "userId": 1,
     "dishName": "Salad",
     "dishSize": "Small",
-    "dishPrice": 5.0,
-    "ingredients": ["eggs", "carrots"],
-    "ingredientPrices": [1.0, 0.4],
+    "dishPrice": 5,
     "totalPrice": 6.4,
-    "orderDate": "2024-01-20T12:35:00.000Z",
-    "status": "confirmed"
+    "orderDate": "2024-01-20 12:35:00",
+    "status": "confirmed",
+    "ingredients": [
+      "eggs",
+      "carrots"
+    ],
+    "ingredientPrices": [
+      1,
+      0.4
+    ]
+  },
+  {
+    "id": 1,
+    "userId": 1,
+    "dishName": "Pizza",
+    "dishSize": "Small",
+    "dishPrice": 5,
+    "totalPrice": 7.2,
+    "orderDate": "2024-01-20 12:30:00",
+    "status": "confirmed",
+    "ingredients": [
+      "mozzarella",
+      "tomatoes",
+      "olives"
+    ],
+    "ingredientPrices": [
+      1,
+      0.5,
+      0.7
+    ]
   }
 ]
 ```
@@ -347,7 +347,7 @@ The backend server provides a RESTful API for restaurant management with authent
 **Success Response (201):**
 ```json
 {
-  "id": 15,
+  "id": 5,
   "dishId": "1_2",
   "ingredientIds": [1, 2, 5],
   "totalPrice": 9.2,
@@ -356,24 +356,13 @@ The backend server provides a RESTful API for restaurant management with authent
 ```
 
 **Error Responses:**
-- **400 (Validation Error):**
-```json
-{
-  "errors": [
-    {
-      "msg": "Invalid value",
-      "path": "dishId"
-    }
-  ]
-}
-```
 - **400 (Constraint Violations):**
 ```json
 {
-  "error": "Medium dishes can have at most 5 ingredients. You selected 7.",
+  "error": "Small dishes can have at most 3 ingredients. You selected 5.",
   "constraintViolation": "ingredient_count",
-  "maxAllowed": 5,
-  "provided": 7
+  "maxAllowed": 3,
+  "provided": 5
 }
 ```
 ```json
@@ -394,22 +383,32 @@ The backend server provides a RESTful API for restaurant management with authent
 ```
 ```json
 {
-  "error": "ham is not available (current availability: 0)",
-  "constraintViolation": "availability",
-  "ingredient": "ham"
-}
-```
-```json
-{
   "error": "Invalid ingredient: 999",
   "constraintViolation": "invalid_ingredient"
 }
 ```
 ```json
 {
-  "error": "The following ingredients became unavailable: ham, tuna. Please refresh and try again.",
-  "constraintViolation": "availability_changed",
-  "unavailableIngredients": ["ham", "tuna"]
+  "error": "Invalid dish ID format"
+}
+```
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "",
+      "msg": "Invalid value",
+      "path": "dishId",
+      "location": "body"
+    },
+    {
+      "type": "field",
+      "msg": "Invalid value",
+      "path": "ingredientIds",
+      "location": "body"
+    }
+  ]
 }
 ```
 
@@ -425,17 +424,6 @@ The backend server provides a RESTful API for restaurant management with authent
 }
 ```
 **Error Responses:**
-- **400 (Validation Error):**
-```json
-{
-  "errors": [
-    {
-      "msg": "Invalid value",
-      "path": "id"
-    }
-  ]
-}
-```
 - **401 (Missing 2FA):**
 ```json
 {
@@ -445,52 +433,11 @@ The backend server provides a RESTful API for restaurant management with authent
 - **404 (Order Not Found):**
 ```json
 {
-  "error": "Order not found or does not belong to user"
+  "error": "Order not found or cannot be cancelled"
 }
 ```
 
 **Security Note:** Requires completed two-factor authentication (`isTotp: true`) for order cancellation. User session must have been upgraded with TOTP verification.
-
-### Error Responses
-
-All endpoints return consistent error formats:
-
-**General Error (500):**
-```json
-{
-  "error": "Database error"
-}
-```
-
-**Validation Errors (400):**
-```json
-{
-  "errors": [
-    {
-      "msg": "Invalid input",
-      "path": "fieldName"
-    }
-  ]
-}
-```
-
-**Constraint Violation Errors (400):**
-```json
-{
-  "error": "eggs is incompatible with: mushrooms",
-  "constraintViolation": "incompatibility",
-  "ingredient": "eggs",
-  "conflictsWith": ["mushrooms"]
-}
-```
-
-**Authentication Errors:**
-- **401:** `{"error": "Not authenticated"}`
-- **401:** `{"error": "Missing TOTP authentication"}`
-
-**Not Found Errors:**
-- **404:** `{"error": "Route not found"}`
-- **404:** `{"error": "Order not found or does not belong to user"}`
 
 ### Authentication States
 
@@ -609,39 +556,30 @@ The API supports three authentication levels:
 ## Screenshot
 
 #### Home Page (not logged)
-
 ![home_no_logged](./resources/screenshots/home_no_logged.png)
 
 #### Login Form
-
 ![login_form](./resources/screenshots/login_form.png)
 
 #### Totp Form
-
 ![totp_form](./resources/screenshots/totp_form.png)
 
 #### Skip 2FA Form
-
 ![skip_2fa](./resources/screenshots/skip_2fa.png)
 
 #### Home Page (logged)
-
 ![home_logged](./resources/screenshots/home_logged.png)
 
 #### Totp Completion Form
-
 ![totp_completion_form](./resources/screenshots/totp_completion_form.png)
 
 #### Home Page (logged with 2FA)
-
 ![home_logged_2fa](./resources/screenshots/home_logged_2fa.png)
 
 #### Order Configuration Test
-
 ![order_configuration_test](./resources/screenshots/order_configuration_test.png)
 
 #### Orders List
-
 ![orders_list](./resources/screenshots/orders_list.png)
 
 ## Users Credentials
