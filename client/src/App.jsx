@@ -242,9 +242,10 @@ function App() {
    * Handles validation errors by redirecting back to configurator with preserved state
    * @param {string} dishId - Selected dish ID (baseDishId_sizeId)
    * @param {Array} ingredientIds - Selected ingredient IDs
+   * @param {Function} onUnavailableIngredient - Callback to handle unavailable ingredient
    * @returns {Promise} Order creation promise
    */
-  const handleCreateOrder = (dishId, ingredientIds) => {
+  const handleCreateOrder = (dishId, ingredientIds, onUnavailableIngredient) => {
     return API.createOrder(dishId, ingredientIds)
       .then(() => API.getIngredients()) // Refresh ingredients for availability updates
       .then(ing => {
@@ -260,6 +261,12 @@ function App() {
         // Handle constraint violations - keep user on configurator
         if (err.constraintViolation) {
           // console.log('Order validation failed:', err); // Debug log
+          
+          // If there's an unavailable ingredient, notify the configurator to deselect it
+          if (err.constraintViolation === 'availability' && err.ingredient && onUnavailableIngredient) {
+            // console.log('Notifying configurator to deselect ingredient:', err.ingredient); // Debug log
+            onUnavailableIngredient(err.ingredient);
+          }
           
           // Refresh ingredients to show current availability
           API.getIngredients()

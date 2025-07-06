@@ -236,7 +236,31 @@ const RestaurantConfigurator = (props) => {
     try {
       // Create combined dish ID and submit order
       const dishId = `${selectedBaseDish.id}_${selectedSize.id}`;
-      await createOrder(dishId, selectedIngredients);
+      
+      // Define callback to handle unavailable ingredient
+      const handleUnavailableIngredient = (unavailableIngredientName) => {
+        // console.log('Deselecting unavailable ingredient:', unavailableIngredientName); // Debug log
+        // console.log('Current selected ingredients before deselection:', selectedIngredients); // Debug log
+        
+        // Find the ingredient ID that corresponds to the unavailable ingredient name
+        const unavailableIngredient = ingredients.find(ingredient => 
+          ingredient.name === unavailableIngredientName
+        );
+        
+        if (unavailableIngredient) {
+          // console.log('Found ingredient to deselect:', unavailableIngredient); // Debug log
+          // Remove the unavailable ingredient from selection
+          setSelectedIngredients(prev => {
+            const newSelection = prev.filter(id => id !== unavailableIngredient.id);
+            // console.log('New selected ingredients after deselection:', newSelection); // Debug log
+            return newSelection;
+          });
+        } else {
+          // console.log('Could not find ingredient with name:', unavailableIngredientName); // Debug log
+        }
+      };
+      
+      await createOrder(dishId, selectedIngredients, handleUnavailableIngredient);
       
       // Reset form after successful order
       setSelectedBaseDish(null);
